@@ -16,6 +16,7 @@ import {
   Receipt,
   PieChart,
   Box,
+  FileEdit,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -43,6 +44,7 @@ const navItems: NavItem[] = [
   { label: 'Invoices', href: '/invoices', icon: Receipt },
   { label: 'Finance', href: '/finance', icon: PieChart },
   { label: 'Assets', href: '/assets', icon: Box },
+  { label: 'Editor', href: '/editor', icon: FileEdit },
   { label: 'Settings', href: '/settings', icon: Settings },
 ];
 
