@@ -198,7 +198,7 @@ export default function EstimatorPage() {
       setShowErrorDialog(true);
       return;
     }
-    console.log('Create offer with:', { title, selectedServices, calculation });
+    console.log('Create offer with:', { title, customerId, selectedServices, calculation });
     // TODO: Navigate to offers/new with pre-filled data
   };
 
@@ -218,15 +218,30 @@ export default function EstimatorPage() {
                 Estimate Details
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Estimate Title</Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Brand Identity Project - Client Name"
+                  placeholder="Brand Identity Project"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customer">Customer</Label>
+                <Select value={customerId} onValueChange={setCustomerId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a customer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mockCustomers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
