@@ -578,39 +578,51 @@ export default function EstimatorPage() {
                 {/* Discount Section */}
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="discount">Discount (AED)</Label>
+                    <Label htmlFor="discount">Discount (%)</Label>
                     <Input
                       id="discount"
                       type="number"
                       value={discount}
                       onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
                       min={0}
+                      max={100}
                       placeholder="0"
                     />
                   </div>
-                  {discount > 0 && (
-                    <>
-                      <div className="flex justify-between text-lg">
-                        <span className="font-semibold">Final Price</span>
-                        <span className="font-bold text-primary">
-                          {formatCurrency(calculation.suggestedPrice - discount)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Profit After Discount</span>
-                        <span
-                          className={`font-medium ${
-                            calculation.profitAmount - discount >= 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                          }`}
-                        >
-                          {calculation.profitAmount - discount >= 0 ? '+' : ''}
-                          {formatCurrency(calculation.profitAmount - discount)}
-                        </span>
-                      </div>
-                    </>
-                  )}
+                  {discount > 0 && (() => {
+                    const discountAmount = calculation.suggestedPrice * (discount / 100);
+                    const finalPrice = calculation.suggestedPrice - discountAmount;
+                    const profitAfterDiscount = calculation.profitAmount - discountAmount;
+                    return (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Discount Amount</span>
+                          <span className="font-medium text-red-600">
+                            -{formatCurrency(discountAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-lg">
+                          <span className="font-semibold">Final Price</span>
+                          <span className="font-bold text-primary">
+                            {formatCurrency(finalPrice)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Profit After Discount</span>
+                          <span
+                            className={`font-medium ${
+                              profitAfterDiscount >= 0
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                            }`}
+                          >
+                            {profitAfterDiscount >= 0 ? '+' : ''}
+                            {formatCurrency(profitAfterDiscount)}
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </CardContent>
