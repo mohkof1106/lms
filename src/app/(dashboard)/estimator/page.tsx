@@ -169,18 +169,22 @@ export default function EstimatorPage() {
       }
     });
 
-    const profitAmount = totalCost * (profitMargin / 100);
-    const suggestedPrice = totalCost + profitAmount;
+    const overheadAmount = totalCost * (overheadPercent / 100);
+    const costWithOverhead = totalCost + overheadAmount;
+    const profitAmount = costWithOverhead * (profitMargin / 100);
+    const suggestedPrice = costWithOverhead + profitAmount;
     const totalHours = employeeHours.reduce((sum, e) => sum + e.hours, 0);
 
     return {
       breakdown,
       totalCost,
+      overheadAmount,
+      costWithOverhead,
       profitAmount,
       suggestedPrice,
       totalHours,
     };
-  }, [employeeHours, profitMargin, activeEmployees]);
+  }, [employeeHours, overheadPercent, profitMargin, activeEmployees]);
 
   // Validation: team hours must be >= service hours
   const hoursShortfall = serviceTotals.totalHours - calculation.totalHours;
@@ -438,6 +442,44 @@ export default function EstimatorPage() {
             </CardContent>
           </Card>
 
+          {/* Margins */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Margins
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Overhead (%)</Label>
+                  <span className="font-medium">{overheadPercent}%</span>
+                </div>
+                <Slider
+                  value={[overheadPercent]}
+                  onValueChange={([value]) => setOverheadPercent(value)}
+                  min={0}
+                  max={50}
+                  step={1}
+                />
+              </div>
+              <Separator />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Profit Margin (%)</Label>
+                  <span className="font-medium">{profitMargin}%</span>
+                </div>
+                <Slider
+                  value={[profitMargin]}
+                  onValueChange={([value]) => setProfitMargin(value)}
+                  min={0}
+                  max={100}
+                  step={1}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column - Results */}
@@ -492,22 +534,17 @@ export default function EstimatorPage() {
                   <span className="text-muted-foreground">Labor Cost</span>
                   <span className="font-medium">{formatCurrency(calculation.totalCost)}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Overhead ({overheadPercent}%)</span>
+                  <span className="font-medium">{formatCurrency(calculation.overheadAmount)}</span>
+                </div>
                 <Separator />
-                {/* Profit Margin Input */}
-                <div className="space-y-2">
-                  <Label htmlFor="profitMargin">Profit Margin (%)</Label>
-                  <Input
-                    id="profitMargin"
-                    type="number"
-                    value={profitMargin}
-                    onChange={(e) => setProfitMargin(parseInt(e.target.value) || 0)}
-                    min={0}
-                    max={100}
-                    className="w-full"
-                  />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Cost</span>
+                  <span className="font-medium">{formatCurrency(calculation.costWithOverhead)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Profit Amount</span>
+                  <span className="text-muted-foreground">Profit ({profitMargin}%)</span>
                   <span className="font-medium text-green-600">
                     +{formatCurrency(calculation.profitAmount)}
                   </span>
