@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { mockEmployees, calculateEmployeeCost } from '@/lib/mock-data/employees';
 import { mockServices } from '@/lib/mock-data/services';
+import { mockCustomers } from '@/lib/mock-data/customers';
 import { formatCurrency } from '@/lib/utils/format';
 import {
   Calculator,
@@ -62,10 +63,12 @@ interface SelectedService {
 
 export default function EstimatorPage() {
   const [title, setTitle] = useState('');
+  const [customerId, setCustomerId] = useState<string>('');
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
   const [employeeHours, setEmployeeHours] = useState<EmployeeHours[]>([]);
   const [overheadPercent, setOverheadPercent] = useState(15);
   const [profitMargin, setProfitMargin] = useState(30);
+  const [discount, setDiscount] = useState(0);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
 
   // Service selection state
@@ -280,8 +283,8 @@ export default function EstimatorPage() {
                         <TableHead className="w-20 text-center">Qty</TableHead>
                         <TableHead className="w-24 text-right">Hrs/Unit</TableHead>
                         <TableHead className="w-24 text-right">Total Hrs</TableHead>
-                        <TableHead className="w-28 text-right">Unit Price</TableHead>
-                        <TableHead className="w-28 text-right">Total Price</TableHead>
+                        <TableHead className="w-28 text-right">Unit Cost</TableHead>
+                        <TableHead className="w-28 text-right">Total Cost</TableHead>
                         <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -501,7 +504,7 @@ export default function EstimatorPage() {
                     <span className="font-medium">{serviceTotals.totalHours}h</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Service Price (ref)</span>
+                    <span>Service Cost (ref)</span>
                     <span className="text-muted-foreground">
                       {formatCurrency(serviceTotals.totalPrice)}
                     </span>
@@ -555,6 +558,44 @@ export default function EstimatorPage() {
                   <span className="font-bold text-primary">
                     {formatCurrency(calculation.suggestedPrice)}
                   </span>
+                </div>
+                <Separator />
+                {/* Discount Section */}
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="discount">Discount (AED)</Label>
+                    <Input
+                      id="discount"
+                      type="number"
+                      value={discount}
+                      onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                      min={0}
+                      placeholder="0"
+                    />
+                  </div>
+                  {discount > 0 && (
+                    <>
+                      <div className="flex justify-between text-lg">
+                        <span className="font-semibold">Final Price</span>
+                        <span className="font-bold text-primary">
+                          {formatCurrency(calculation.suggestedPrice - discount)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Profit After Discount</span>
+                        <span
+                          className={`font-medium ${
+                            calculation.profitAmount - discount >= 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {calculation.profitAmount - discount >= 0 ? '+' : ''}
+                          {formatCurrency(calculation.profitAmount - discount)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </CardContent>
