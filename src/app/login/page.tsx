@@ -13,7 +13,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -21,6 +23,7 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setSuccess(null)
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -37,18 +40,50 @@ export default function LoginPage() {
     router.refresh()
   }
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    })
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+
+    setSuccess('Account created! Check your email to confirm, or sign in directly if email confirmation is disabled.')
+    setLoading(false)
+    setIsSignUp(false)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">LOR Management</CardTitle>
-          <CardDescription>Sign in to access the dashboard</CardDescription>
+          <CardDescription>
+            {isSignUp ? 'Create your admin account' : 'Sign in to access the dashboard'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="space-y-4">
             {error && (
               <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="p-3 text-sm text-green-700 bg-green-100 dark:bg-green-900 dark:text-green-300 rounded-md">
+                {success}
               </div>
             )}
             <div className="space-y-2">
@@ -67,22 +102,49 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                placeholder={isSignUp ? 'Min 6 characters' : ''}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={isSignUp ? 6 : undefined}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  {isSignUp ? 'Creating account...' : 'Signing in...'}
                 </>
               ) : (
-                'Sign in'
+                isSignUp ? 'Create Account' : 'Sign in'
               )}
             </Button>
           </form>
+          <div className="mt-4 text-center text-sm">
+            {isSignUp ? (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(false); setError(null); setSuccess(null); }}
+                  className="text-primary hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                Need an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(true); setError(null); setSuccess(null); }}
+                  className="text-primary hover:underline"
+                >
+                  Create one
+                </button>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
