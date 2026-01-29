@@ -51,7 +51,7 @@ export default function SettingsPage() {
           <TabsTrigger value="company">Company</TabsTrigger>
           <TabsTrigger value="work">Work Settings</TabsTrigger>
           <TabsTrigger value="holidays">Holidays</TabsTrigger>
-          <TabsTrigger value="overhead">Overhead Costs</TabsTrigger>
+          <TabsTrigger value="overhead">Overhead Costs (Forecast)</TabsTrigger>
         </TabsList>
 
         {/* Company Info */}
@@ -221,7 +221,7 @@ export default function SettingsPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Monthly Overhead</p>
+                      <p className="text-sm text-muted-foreground">Monthly Overhead (Forecast)</p>
                       <p className="text-2xl font-bold">{formatCurrency(totalMonthlyOverhead)}</p>
                     </div>
                     <div className="p-3 rounded-full bg-primary/10">
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Yearly Fixed Costs</p>
+                      <p className="text-sm text-muted-foreground">Yearly Fixed Costs (Forecast)</p>
                       <p className="text-2xl font-bold">{formatCurrency(totalYearlyOverhead)}</p>
                     </div>
                     <div className="p-3 rounded-full bg-primary/10">
@@ -251,10 +251,10 @@ export default function SettingsPage() {
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <DollarSign className="h-5 w-5 text-primary" />
-                    Overhead Costs
+                    Forecast Overhead Costs
                   </CardTitle>
                   <CardDescription>
-                    Fixed costs distributed across employee hourly rates
+                    Planned fixed costs for budgeting. Actual costs will be tracked separately.
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm">
