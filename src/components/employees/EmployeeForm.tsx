@@ -263,6 +263,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
                       </Button>
                     </div>
                   </FormControl>
+                  <FormDescription>Must match the password above</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
