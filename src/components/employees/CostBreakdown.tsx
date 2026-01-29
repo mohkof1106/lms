@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Employee, EmployeeCostBreakdown } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
-import { Calculator, Clock, Calendar, TrendingUp } from 'lucide-react';
+import { getAssetsByAssignee } from '@/lib/mock-data/assets';
+import { Calculator, Clock, Calendar, TrendingUp, Monitor } from 'lucide-react';
 
 interface CostBreakdownProps {
   employee: Employee;
@@ -12,6 +13,8 @@ interface CostBreakdownProps {
 }
 
 export function CostBreakdown({ employee, costs }: CostBreakdownProps) {
+  const assignedAssets = getAssetsByAssignee(employee.id);
+
   return (
     <Card>
       <CardHeader>
@@ -21,6 +24,32 @@ export function CostBreakdown({ employee, costs }: CostBreakdownProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Assigned Assets */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Monitor className="h-4 w-4" />
+            Assigned Assets
+          </h4>
+          {assignedAssets.length > 0 ? (
+            <div className="grid gap-2">
+              {assignedAssets.map((asset) => (
+                <div key={asset.id} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground truncate max-w-[180px]">{asset.name}</span>
+                  <span>{formatCurrency(asset.depreciationPerYear / 12)}/mo</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-sm pt-2 border-t">
+                <span className="font-medium">Total Asset Depreciation</span>
+                <span className="font-medium">{formatCurrency(costs.assetDepreciationMonthly)}/mo</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">No assets assigned</p>
+          )}
+        </div>
+
+        <Separator />
+
         {/* Input Costs */}
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground">Input Costs</h4>
@@ -45,6 +74,12 @@ export function CostBreakdown({ employee, costs }: CostBreakdownProps) {
               <span>13th Month Salary</span>
               <span className="text-muted-foreground">{formatCurrency(employee.baseSalary / 12)}/mo</span>
             </div>
+            {costs.assetDepreciationMonthly > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Asset Depreciation</span>
+                <span className="text-muted-foreground">{formatCurrency(costs.assetDepreciationMonthly)}/mo</span>
+              </div>
+            )}
           </div>
         </div>
 

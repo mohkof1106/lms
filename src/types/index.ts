@@ -39,6 +39,8 @@ export interface EmployeeCostBreakdown {
   dailyCost: number;
   hourlyCost: number;
   workingDaysPerYear: number;
+  assetDepreciationYearly: number;
+  assetDepreciationMonthly: number;
 }
 
 // Customer Types

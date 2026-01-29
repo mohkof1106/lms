@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { PageWrapper } from '@/components/layout';
 import { SearchInput } from '@/components/shared';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -22,14 +22,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
   mockAssets,
   assetCategoryLabels,
-  getTotalAssetValue,
 } from '@/lib/mock-data/assets';
 import { mockEmployees } from '@/lib/mock-data/employees';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { Plus, Box, DollarSign, TrendingDown, Users } from 'lucide-react';
-import { AssetCategory } from '@/types';
+import { AssetCategory, Asset } from '@/types';
+import { AssetForm, AssetFormData } from '@/components/assets';
+import { toast } from 'sonner';
 
 const categoryColors: Record<AssetCategory, string> = {
   equipment: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -42,9 +50,11 @@ const categoryColors: Record<AssetCategory, string> = {
 export default function AssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [assets, setAssets] = useState<Asset[]>(mockAssets);
 
   const filteredAssets = useMemo(() => {
-    return mockAssets.filter((asset) => {
+    return assets.filter((asset) => {
       const searchLower = search.toLowerCase();
       const matchesSearch =
         !search ||
@@ -55,17 +65,37 @@ export default function AssetsPage() {
 
       return matchesSearch && matchesCategory;
     });
-  }, [search, categoryFilter]);
+  }, [search, categoryFilter, assets]);
 
   // Calculate stats
   const stats = useMemo(() => {
-    const totalValue = getTotalAssetValue();
-    const totalPurchaseValue = mockAssets.reduce((sum, a) => sum + a.purchasePrice, 0);
+    const totalValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
+    const totalPurchaseValue = assets.reduce((sum, a) => sum + a.purchasePrice, 0);
     const totalDepreciation = totalPurchaseValue - totalValue;
-    const assignedCount = mockAssets.filter((a) => a.assignedTo).length;
+    const assignedCount = assets.filter((a) => a.assignedTo).length;
 
     return { totalValue, totalPurchaseValue, totalDepreciation, assignedCount };
-  }, []);
+  }, [assets]);
+
+  const handleAddAsset = (data: AssetFormData) => {
+    const newAsset: Asset = {
+      id: `AST-${String(assets.length + 1).padStart(3, '0')}`,
+      name: data.name,
+      category: data.category,
+      purchaseDate: data.purchaseDate,
+      purchasePrice: data.purchasePrice,
+      usefulLifeYears: data.usefulLifeYears,
+      currentValue: data.purchasePrice, // New asset, no depreciation yet
+      depreciationPerYear: data.purchasePrice / data.usefulLifeYears,
+      assignedTo: data.assignedTo || undefined,
+      serialNumber: data.serialNumber || undefined,
+      notes: data.notes || undefined,
+    };
+
+    setAssets([...assets, newAsset]);
+    setIsAddSheetOpen(false);
+    toast.success('Asset added successfully');
+  };
 
   const getEmployeeName = (employeeId?: string) => {
     if (!employeeId) return '—';
@@ -76,9 +106,9 @@ export default function AssetsPage() {
   return (
     <PageWrapper
       title="Assets"
-      description={`${mockAssets.length} company assets`}
+      description={`${assets.length} company assets`}
       actions={
-        <Button>
+        <Button onClick={() => setIsAddSheetOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Asset
         </Button>
@@ -91,7 +121,7 @@ export default function AssetsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Assets</p>
-                <p className="text-2xl font-bold">{mockAssets.length}</p>
+                <p className="text-2xl font-bold">{assets.length}</p>
               </div>
               <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
                 <Box className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -177,6 +207,7 @@ export default function AssetsPage() {
                 <TableHead>Assigned To</TableHead>
                 <TableHead className="text-right">Purchase Price</TableHead>
                 <TableHead className="text-right">Current Value</TableHead>
+                <TableHead className="text-right">Yearly Depr.</TableHead>
                 <TableHead>Purchase Date</TableHead>
               </TableRow>
             </TableHeader>
@@ -207,6 +238,9 @@ export default function AssetsPage() {
                   <TableCell className="text-right font-medium">
                     {formatCurrency(asset.currentValue)}
                   </TableCell>
+                  <TableCell className="text-right text-sm text-muted-foreground">
+                    {formatCurrency(asset.depreciationPerYear)}
+                  </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground">
                       {formatDate(asset.purchaseDate)}
@@ -218,6 +252,24 @@ export default function AssetsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Add Asset Sheet */}
+      <Sheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Add New Asset</SheetTitle>
+            <SheetDescription>
+              Add a new company asset. Depreciation is calculated automatically.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6">
+            <AssetForm
+              onSubmit={handleAddAsset}
+              onCancel={() => setIsAddSheetOpen(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </PageWrapper>
   );
 }
