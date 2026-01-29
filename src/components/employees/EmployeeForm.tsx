@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,12 +27,17 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Employee, UserRole } from '@/types';
 import { roleLabels } from '@/lib/utils/format';
-import { User, Briefcase, DollarSign, Calendar, Phone } from 'lucide-react';
+import { User, Briefcase, DollarSign, Calendar, Phone, Lock, Eye, EyeOff } from 'lucide-react';
 
-const employeeSchema = z.object({
+// Base schema for employee fields
+const createEmployeeSchema = (isEditMode: boolean) => z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number is required'),
+  password: isEditMode
+    ? z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal(''))
+    : z.string().min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string().optional().or(z.literal('')),
   role: z.enum(['admin', 'sr_manager', 'manager', 'designer', 'hr', 'pm'] as const),
   jobTitle: z.string().min(2, 'Job title is required'),
   department: z.string().min(2, 'Department is required'),
@@ -45,9 +51,18 @@ const employeeSchema = z.object({
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   emergencyContactRelation: z.string().optional(),
+}).refine((data) => {
+  // If password is provided, confirmPassword must match
+  if (data.password && data.password.length > 0) {
+    return data.password === data.confirmPassword;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
-type EmployeeFormData = z.infer<typeof employeeSchema>;
+type EmployeeFormData = z.infer<ReturnType<typeof createEmployeeSchema>>;
 
 interface EmployeeFormProps {
   employee?: Employee;
@@ -56,6 +71,12 @@ interface EmployeeFormProps {
 }
 
 export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const isEditMode = !!employee;
+  const employeeSchema = createEmployeeSchema(isEditMode);
+
   const form = useForm<EmployeeFormData>({
     resolver: zodResolver(employeeSchema),
     defaultValues: employee
@@ -63,6 +84,8 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
           fullName: employee.fullName,
           email: employee.email,
           phone: employee.phone,
+          password: '',
+          confirmPassword: '',
           role: employee.role,
           jobTitle: employee.jobTitle,
           department: employee.department,
@@ -81,6 +104,8 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
           fullName: '',
           email: '',
           phone: '+971 ',
+          password: '',
+          confirmPassword: '',
           role: 'designer',
           jobTitle: '',
           department: 'Creative',
@@ -158,6 +183,85 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
                   <FormLabel>Start Date</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Account Access */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Lock className="h-5 w-5 text-primary" />
+              Account Access
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{isEditMode ? 'New Password' : 'Password'}</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={isEditMode ? 'Leave blank to keep current' : 'Min 8 characters'}
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    {isEditMode ? 'Only fill if changing password' : 'Used for employee login to the system'}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Confirm Password</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Re-enter password"
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

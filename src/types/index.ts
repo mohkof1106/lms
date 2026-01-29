@@ -7,6 +7,7 @@ export interface Employee {
   fullName: string;
   email: string;
   phone: string;
+  password?: string;
   role: UserRole;
   jobTitle: string;
   department: string;
