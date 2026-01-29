@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageWrapper } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,7 @@ interface SelectedService {
 }
 
 export default function EstimatorPage() {
+  const router = useRouter();
   const [title, setTitle] = useState('');
   const [customerId, setCustomerId] = useState<string>('');
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
@@ -198,8 +200,28 @@ export default function EstimatorPage() {
       setShowErrorDialog(true);
       return;
     }
-    console.log('Create offer with:', { title, customerId, selectedServices, calculation });
-    // TODO: Navigate to offers/new with pre-filled data
+
+    // Build line items from selected services with calculated prices
+    const lineItems = selectedServices.map(({ serviceId, qty }) => {
+      const service = activeServices.find((s) => s.id === serviceId);
+      // Use suggested price distributed proportionally, or service base price
+      const unitPrice = service ? Math.round(calculation.suggestedPrice / selectedServices.length / qty) : 0;
+      return {
+        id: `LI-${serviceId}`,
+        description: service?.name || '',
+        quantity: qty,
+        unitPrice: service?.basePrice || 0,
+      };
+    });
+
+    // Pass data to offers/new via sessionStorage
+    sessionStorage.setItem('estimateToOffer', JSON.stringify({
+      customerId,
+      title,
+      lineItems,
+    }));
+
+    router.push('/offers/new');
   };
 
   return (
@@ -561,8 +583,19 @@ export default function EstimatorPage() {
                   <span className="text-muted-foreground">Total Cost</span>
                   <span className="font-medium">{formatCurrency(calculation.costWithOverhead)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Profit ({profitMargin}%)</span>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted-foreground">Profit (</span>
+                    <Input
+                      type="number"
+                      value={profitMargin}
+                      onChange={(e) => setProfitMargin(parseFloat(e.target.value) || 0)}
+                      min={0}
+                      max={100}
+                      className="w-14 h-6 text-center text-sm px-1"
+                    />
+                    <span className="text-muted-foreground">%)</span>
+                  </div>
                   <span className="font-medium text-green-600">
                     +{formatCurrency(calculation.profitAmount)}
                   </span>
