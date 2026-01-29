@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Table,
@@ -16,6 +17,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Customer } from '@/types';
@@ -23,9 +34,13 @@ import { MoreHorizontal, Eye, Pencil, Trash2, Users } from 'lucide-react';
 
 interface CustomerTableProps {
   customers: Customer[];
+  onDelete?: (customerId: string) => void;
 }
 
-export function CustomerTable({ customers }: CustomerTableProps) {
+export function CustomerTable({ customers, onDelete }: CustomerTableProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -33,6 +48,19 @@ export function CustomerTable({ customers }: CustomerTableProps) {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleDeleteClick = (customer: Customer) => {
+    setCustomerToDelete(customer);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (customerToDelete && onDelete) {
+      onDelete(customerToDelete.id);
+    }
+    setDeleteDialogOpen(false);
+    setCustomerToDelete(null);
   };
 
   return (
@@ -122,7 +150,10 @@ export function CustomerTable({ customers }: CustomerTableProps) {
                           Edit
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDeleteClick(customer)}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
@@ -134,6 +165,24 @@ export function CustomerTable({ customers }: CustomerTableProps) {
           })}
         </TableBody>
       </Table>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Customer</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {customerToDelete?.name}? This action cannot be undone
+              and will also delete all associated contacts.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

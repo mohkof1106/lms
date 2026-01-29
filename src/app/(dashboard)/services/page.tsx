@@ -1,43 +1,108 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
 import { ServiceCard, ServiceTable } from '@/components/services';
 import { SearchInput } from '@/components/shared';
 import { Button } from '@/components/ui/button';
-import { mockServices, serviceCategoryLabels } from '@/lib/mock-data/services';
-import { ServiceCategory } from '@/types';
-import { Plus, LayoutGrid, List } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Service, ServiceCategory } from '@/types';
+import { Plus, LayoutGrid, List, Loader2 } from 'lucide-react';
+
+const serviceCategoryLabels: Record<ServiceCategory, string> = {
+  powerpoint: 'PowerPoint',
+  video: 'Video',
+  branding: 'Branding',
+};
 
 export default function ServicesPage() {
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
+  // Fetch services from Supabase
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('services')
+          .select('*')
+          .order('category')
+          .order('name');
+
+        if (error) throw error;
+
+        const mapped: Service[] = (data || []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          description: s.description || '',
+          basePrice: Number(s.base_price),
+          estimatedHours: s.estimated_hours,
+          category: s.category as ServiceCategory,
+          active: s.active,
+        }));
+
+        setServices(mapped);
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch services');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchServices();
+  }, []);
+
   const categories = Object.entries(serviceCategoryLabels) as [ServiceCategory, string][];
 
   const filteredServices = useMemo(() => {
-    return mockServices.filter((service) => {
-      // Search filter
+    return services.filter((service) => {
       const searchLower = search.toLowerCase();
       const matchesSearch =
         !search ||
         service.name.toLowerCase().includes(searchLower) ||
         service.description.toLowerCase().includes(searchLower);
 
-      // Category filter
       const matchesCategory =
         categoryFilter === 'all' || service.category === categoryFilter;
 
       return matchesSearch && matchesCategory;
     });
-  }, [search, categoryFilter]);
+  }, [search, categoryFilter, services]);
+
+  if (loading) {
+    return (
+      <PageWrapper title="Services" description="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper title="Services" description="Error">
+        <div className="text-center py-12">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper
       title="Services"
-      description={`${mockServices.length} services in catalog`}
+      description={`${services.length} services in catalog`}
       actions={
         <Button asChild>
           <Link href="/services/new">

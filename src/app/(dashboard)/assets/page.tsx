@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PageWrapper } from '@/components/layout';
 import { SearchInput } from '@/components/shared';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,16 +28,20 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import {
-  mockAssets,
-  assetCategoryLabels,
-} from '@/lib/mock-data/assets';
-import { mockEmployees } from '@/lib/mock-data/employees';
+import { supabase } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
-import { Plus, Box, DollarSign, TrendingDown, Users } from 'lucide-react';
-import { AssetCategory, Asset } from '@/types';
+import { Plus, Box, DollarSign, TrendingDown, Users, Loader2 } from 'lucide-react';
+import { AssetCategory, Asset, Employee } from '@/types';
 import { AssetForm, AssetFormData } from '@/components/assets';
 import { toast } from 'sonner';
+
+const assetCategoryLabels: Record<AssetCategory, string> = {
+  equipment: 'Equipment',
+  software: 'Software',
+  furniture: 'Furniture',
+  vehicle: 'Vehicle',
+  other: 'Other',
+};
 
 const categoryColors: Record<AssetCategory, string> = {
   equipment: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -48,10 +52,71 @@ const categoryColors: Record<AssetCategory, string> = {
 };
 
 export default function AssetsPage() {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
-  const [assets, setAssets] = useState<Asset[]>(mockAssets);
+
+  // Fetch assets and employees from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+
+        const [assetsRes, employeesRes] = await Promise.all([
+          supabase.from('assets').select('*').order('name'),
+          supabase.from('employees').select('id, full_name').eq('active', true),
+        ]);
+
+        if (assetsRes.error) throw assetsRes.error;
+        if (employeesRes.error) throw employeesRes.error;
+
+        const mappedAssets: Asset[] = (assetsRes.data || []).map((a) => ({
+          id: a.id,
+          name: a.name,
+          category: a.category as AssetCategory,
+          purchaseDate: a.purchase_date,
+          purchasePrice: Number(a.purchase_price),
+          usefulLifeYears: a.useful_life_years,
+          currentValue: Number(a.current_value),
+          depreciationPerYear: Number(a.depreciation_per_year),
+          assignedTo: a.assigned_to || undefined,
+          serialNumber: a.serial_number || undefined,
+          notes: a.notes || undefined,
+        }));
+
+        const mappedEmployees: Employee[] = (employeesRes.data || []).map((e) => ({
+          id: e.id,
+          fullName: e.full_name,
+          email: '',
+          phone: '',
+          role: 'designer',
+          jobTitle: '',
+          department: '',
+          baseSalary: 0,
+          insurance: 0,
+          ticketValue: 0,
+          visaCost: 0,
+          vacationDays: 0,
+          startDate: '',
+          active: true,
+        }));
+
+        setAssets(mappedAssets);
+        setEmployees(mappedEmployees);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   const filteredAssets = useMemo(() => {
     return assets.filter((asset) => {
@@ -67,7 +132,6 @@ export default function AssetsPage() {
     });
   }, [search, categoryFilter, assets]);
 
-  // Calculate stats
   const stats = useMemo(() => {
     const totalValue = assets.reduce((sum, a) => sum + a.currentValue, 0);
     const totalPurchaseValue = assets.reduce((sum, a) => sum + a.purchasePrice, 0);
@@ -77,31 +141,78 @@ export default function AssetsPage() {
     return { totalValue, totalPurchaseValue, totalDepreciation, assignedCount };
   }, [assets]);
 
-  const handleAddAsset = (data: AssetFormData) => {
-    const newAsset: Asset = {
-      id: `AST-${String(assets.length + 1).padStart(3, '0')}`,
-      name: data.name,
-      category: data.category,
-      purchaseDate: data.purchaseDate,
-      purchasePrice: data.purchasePrice,
-      usefulLifeYears: data.usefulLifeYears,
-      currentValue: data.purchasePrice, // New asset, no depreciation yet
-      depreciationPerYear: data.purchasePrice / data.usefulLifeYears,
-      assignedTo: data.assignedTo || undefined,
-      serialNumber: data.serialNumber || undefined,
-      notes: data.notes || undefined,
-    };
+  const handleAddAsset = async (data: AssetFormData) => {
+    try {
+      const { data: newAsset, error } = await supabase
+        .from('assets')
+        .insert({
+          name: data.name,
+          category: data.category,
+          purchase_date: data.purchaseDate,
+          purchase_price: data.purchasePrice,
+          useful_life_years: data.usefulLifeYears,
+          current_value: data.purchasePrice,
+          depreciation_per_year: data.purchasePrice / data.usefulLifeYears,
+          assigned_to: data.assignedTo || null,
+          serial_number: data.serialNumber || null,
+          notes: data.notes || null,
+        })
+        .select()
+        .single();
 
-    setAssets([...assets, newAsset]);
-    setIsAddSheetOpen(false);
-    toast.success('Asset added successfully');
+      if (error) throw error;
+
+      const mapped: Asset = {
+        id: newAsset.id,
+        name: newAsset.name,
+        category: newAsset.category as AssetCategory,
+        purchaseDate: newAsset.purchase_date,
+        purchasePrice: Number(newAsset.purchase_price),
+        usefulLifeYears: newAsset.useful_life_years,
+        currentValue: Number(newAsset.current_value),
+        depreciationPerYear: Number(newAsset.depreciation_per_year),
+        assignedTo: newAsset.assigned_to || undefined,
+        serialNumber: newAsset.serial_number || undefined,
+        notes: newAsset.notes || undefined,
+      };
+
+      setAssets([...assets, mapped]);
+      setIsAddSheetOpen(false);
+      toast.success('Asset added successfully');
+    } catch (err) {
+      console.error('Error adding asset:', err);
+      toast.error('Failed to add asset');
+    }
   };
 
   const getEmployeeName = (employeeId?: string) => {
     if (!employeeId) return '—';
-    const employee = mockEmployees.find((e) => e.id === employeeId);
+    const employee = employees.find((e) => e.id === employeeId);
     return employee?.fullName || '—';
   };
+
+  if (loading) {
+    return (
+      <PageWrapper title="Assets" description="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper title="Assets" description="Error">
+        <div className="text-center py-12">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper

@@ -219,6 +219,11 @@ export default function EstimatorPage() {
       customerId,
       title,
       lineItems,
+      discount,
+      laborCost: calculation.totalCost,
+      overheadPercent,
+      overheadAmount: calculation.overheadAmount,
+      profitAmount: calculation.profitAmount,
     }));
 
     router.push('/offers/new');

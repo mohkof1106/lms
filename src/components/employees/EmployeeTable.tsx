@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Table,
@@ -19,9 +19,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StatusBadge } from '@/components/shared';
-import { Employee } from '@/types';
+import { Employee, EmployeeCostBreakdown } from '@/types';
 import { formatCurrency, roleLabels } from '@/lib/utils/format';
-import { calculateEmployeeCost } from '@/lib/mock-data/employees';
+import { supabase } from '@/lib/supabase';
 import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
 
 interface EmployeeTableProps {
@@ -29,6 +29,43 @@ interface EmployeeTableProps {
 }
 
 export function EmployeeTable({ employees }: EmployeeTableProps) {
+  const [costs, setCosts] = useState<Record<string, EmployeeCostBreakdown>>({});
+
+  // Fetch costs from Supabase for all employees
+  useEffect(() => {
+    async function fetchCosts() {
+      const costsMap: Record<string, EmployeeCostBreakdown> = {};
+
+      // Fetch costs for each employee using the database function
+      await Promise.all(
+        employees.map(async (emp) => {
+          const { data, error } = await supabase
+            .rpc('calculate_employee_hourly_cost', { p_employee_id: emp.id });
+
+          if (!error && data && data[0]) {
+            const c = data[0];
+            costsMap[emp.id] = {
+              monthlyCost: c.monthly_cost,
+              fullCost: c.full_monthly_cost,
+              yearlyCost: c.yearly_cost,
+              dailyCost: c.daily_cost,
+              hourlyCost: c.hourly_cost,
+              workingDaysPerYear: c.working_days_per_year,
+              assetDepreciationYearly: c.asset_depreciation_monthly * 12,
+              assetDepreciationMonthly: c.asset_depreciation_monthly,
+            };
+          }
+        })
+      );
+
+      setCosts(costsMap);
+    }
+
+    if (employees.length > 0) {
+      fetchCosts();
+    }
+  }, [employees]);
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -54,7 +91,7 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
         </TableHeader>
         <TableBody>
           {employees.map((employee) => {
-            const costs = calculateEmployeeCost(employee);
+            const employeeCosts = costs[employee.id];
             return (
               <TableRow key={employee.id}>
                 <TableCell>
@@ -82,10 +119,14 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                   <span className="text-sm text-muted-foreground">{employee.department}</span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className="font-medium">{formatCurrency(costs.hourlyCost)}</span>
+                  <span className="font-medium">
+                    {employeeCosts ? formatCurrency(employeeCosts.hourlyCost) : '—'}
+                  </span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className="font-medium">{formatCurrency(costs.fullCost)}</span>
+                  <span className="font-medium">
+                    {employeeCosts ? formatCurrency(employeeCosts.fullCost) : '—'}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <StatusBadge

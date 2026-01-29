@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
 import { CustomerTable } from '@/components/customers';
@@ -13,24 +13,85 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockCustomers } from '@/lib/mock-data';
-import { Plus, Download } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Customer } from '@/types';
+import { Plus, Download, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [industryFilter, setIndustryFilter] = useState<string>('all');
 
-  // Extract unique industries from customers
-  const industries = useMemo(() => {
-    const uniqueIndustries = new Set(
-      mockCustomers.map((c) => c.industry).filter(Boolean)
-    );
-    return Array.from(uniqueIndustries).sort();
+  // Fetch customers with contacts from Supabase
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        setLoading(true);
+
+        // Fetch customers
+        const { data: customersData, error: customersError } = await supabase
+          .from('customers')
+          .select('*')
+          .order('name');
+
+        if (customersError) throw customersError;
+
+        // Fetch all contacts
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('customer_contacts')
+          .select('*');
+
+        if (contactsError) throw contactsError;
+
+        // Map and join data
+        const mapped: Customer[] = (customersData || []).map((c) => ({
+          id: c.id,
+          name: c.name,
+          location: c.location || '',
+          website: c.website || undefined,
+          industry: c.industry || undefined,
+          notes: c.notes || undefined,
+          trn: c.trn || undefined,
+          createdAt: c.created_at,
+          activeProjects: 0,
+          activePackages: 0,
+          contacts: (contactsData || [])
+            .filter((contact) => contact.customer_id === c.id)
+            .map((contact) => ({
+              id: contact.id,
+              name: contact.name,
+              email: contact.email || '',
+              phone: contact.phone || '',
+              position: contact.position || undefined,
+              isPrimary: contact.is_primary,
+            })),
+        }));
+
+        setCustomers(mapped);
+      } catch (err) {
+        console.error('Error fetching customers:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch customers');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCustomers();
   }, []);
 
+  // Extract unique industries
+  const industries = useMemo(() => {
+    const uniqueIndustries = new Set(
+      customers.map((c) => c.industry).filter(Boolean)
+    );
+    return Array.from(uniqueIndustries).sort();
+  }, [customers]);
+
   const filteredCustomers = useMemo(() => {
-    return mockCustomers.filter((customer) => {
-      // Search filter
+    return customers.filter((customer) => {
       const searchLower = search.toLowerCase();
       const matchesSearch =
         !search ||
@@ -42,18 +103,58 @@ export default function CustomersPage() {
             c.email.toLowerCase().includes(searchLower)
         );
 
-      // Industry filter
       const matchesIndustry =
         industryFilter === 'all' || customer.industry === industryFilter;
 
       return matchesSearch && matchesIndustry;
     });
-  }, [search, industryFilter]);
+  }, [search, industryFilter, customers]);
+
+  const handleDeleteCustomer = async (customerId: string) => {
+    try {
+      // Delete customer - contacts are deleted via CASCADE
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId);
+
+      if (error) throw error;
+
+      setCustomers(customers.filter((c) => c.id !== customerId));
+      toast.success('Customer deleted successfully');
+    } catch (err) {
+      console.error('Error deleting customer:', err);
+      toast.error('Failed to delete customer');
+    }
+  };
+
+  if (loading) {
+    return (
+      <PageWrapper title="Customers" description="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper title="Customers" description="Error">
+        <div className="text-center py-12">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper
       title="Customers"
-      description={`${mockCustomers.length} clients`}
+      description={`${customers.length} clients`}
       actions={
         <Button asChild>
           <Link href="/customers/new">
@@ -97,7 +198,7 @@ export default function CustomersPage() {
           <p className="text-muted-foreground">No customers found matching your criteria.</p>
         </div>
       ) : (
-        <CustomerTable customers={filteredCustomers} />
+        <CustomerTable customers={filteredCustomers} onDelete={handleDeleteCustomer} />
       )}
     </PageWrapper>
   );

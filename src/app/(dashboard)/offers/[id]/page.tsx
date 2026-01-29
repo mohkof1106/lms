@@ -16,7 +16,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getOfferById, offerStatusLabels } from '@/lib/mock-data/offers';
+import { getCustomerById } from '@/lib/mock-data/customers';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
+import { generateOfferPDF } from '@/lib/utils/offer-pdf';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -27,6 +29,8 @@ import {
   FileText,
   Building2,
   Calendar,
+  Download,
+  Calculator,
 } from 'lucide-react';
 import { OfferStatus } from '@/types';
 
@@ -43,6 +47,7 @@ export default function OfferDetailPage() {
   const router = useRouter();
 
   const offer = getOfferById(params.id as string);
+  const customer = offer ? getCustomerById(offer.customerId) : undefined;
 
   if (!offer) {
     return (
@@ -69,6 +74,37 @@ export default function OfferDetailPage() {
     toast.success('Invoice created!');
     router.push('/invoices');
   };
+
+  const handleDownloadPDF = () => {
+    generateOfferPDF({
+      offerNumber: offer.offerNumber,
+      date: offer.date,
+      customerName: offer.customerName,
+      customerLocation: customer?.location || '',
+      customerTrn: customer?.trn,
+      projectTitle: undefined,
+      lineItems: offer.lineItems.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.total,
+      })),
+      subtotal: offer.subtotal,
+      discountPercent: offer.discountPercent,
+      discountAmount: offer.discountAmount,
+      vatRate: offer.vatRate,
+      vatAmount: offer.vatAmount,
+      total: offer.total,
+      terms: offer.terms,
+    });
+
+    toast.success('PDF downloaded!');
+  };
+
+  // Internal cost calculations
+  const hasInternalData = offer.laborCost && offer.laborCost > 0;
+  const totalCost = (offer.laborCost || 0) + (offer.overheadAmount || 0);
+  const actualProfit = offer.total - totalCost;
 
   return (
     <PageWrapper
@@ -203,6 +239,12 @@ export default function OfferDetailPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">{formatCurrency(offer.subtotal)}</span>
                 </div>
+                {offer.discountPercent && offer.discountPercent > 0 && offer.discountAmount && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Discount ({offer.discountPercent}%)</span>
+                    <span className="font-medium text-red-600">-{formatCurrency(offer.discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">VAT ({offer.vatRate}%)</span>
                   <span className="font-medium">{formatCurrency(offer.vatAmount)}</span>
@@ -249,6 +291,12 @@ export default function OfferDetailPage() {
                   <span className="text-muted-foreground">Line Items</span>
                   <span>{offer.lineItems.length}</span>
                 </div>
+                {offer.discountPercent && offer.discountPercent > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Discount</span>
+                    <span className="text-red-600">{offer.discountPercent}%</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">VAT Rate</span>
                   <span>{offer.vatRate}%</span>
@@ -256,6 +304,44 @@ export default function OfferDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Internal Summary (if data exists) */}
+          {hasInternalData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calculator className="h-5 w-5 text-primary" />
+                  Internal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Labor Cost</span>
+                  <span className="font-medium">{formatCurrency(offer.laborCost || 0)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Overhead ({offer.overheadPercent}%)</span>
+                  <span className="font-medium">{formatCurrency(offer.overheadAmount || 0)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Cost</span>
+                  <span className="font-medium">{formatCurrency(totalCost)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Est. Profit</span>
+                  <span className="font-medium text-green-600">+{formatCurrency(offer.profitAmount || 0)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Actual Profit</span>
+                  <span className={`font-bold ${actualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {actualProfit >= 0 ? '+' : ''}{formatCurrency(actualProfit)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Notes */}
           {offer.notes && (
@@ -275,7 +361,12 @@ export default function OfferDetailPage() {
               <CardTitle className="text-lg">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" disabled>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleDownloadPDF}
+              >
+                <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
               <Button variant="outline" className="w-full justify-start" disabled>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
 import { EmployeeTable } from '@/components/employees';
@@ -13,17 +13,66 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockEmployees } from '@/lib/mock-data';
-import { Plus, Download } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Employee } from '@/types';
+import { Plus, Download, Loader2 } from 'lucide-react';
 import { roleLabels } from '@/lib/utils/format';
 
 export default function EmployeesPage() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  // Fetch employees from Supabase
+  useEffect(() => {
+    async function fetchEmployees() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('employees')
+          .select('*')
+          .order('full_name');
+
+        if (error) throw error;
+
+        // Map database fields to Employee type (snake_case → camelCase)
+        const mapped: Employee[] = (data || []).map((e) => ({
+          id: e.id,
+          fullName: e.full_name,
+          email: e.email,
+          phone: e.phone || '',
+          role: e.role,
+          jobTitle: e.job_title || '',
+          department: e.department || '',
+          baseSalary: Number(e.base_salary),
+          insurance: Number(e.insurance),
+          ticketValue: Number(e.ticket_value),
+          visaCost: Number(e.visa_cost),
+          vacationDays: e.vacation_days,
+          startDate: e.start_date,
+          endDate: e.end_date || undefined,
+          active: e.active,
+          emergencyContact: e.emergency_contact as Employee['emergencyContact'],
+          documents: e.documents as Employee['documents'],
+        }));
+
+        setEmployees(mapped);
+      } catch (err) {
+        console.error('Error fetching employees:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch employees');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEmployees();
+  }, []);
+
   const filteredEmployees = useMemo(() => {
-    return mockEmployees.filter((employee) => {
+    return employees.filter((employee) => {
       // Search filter
       const searchLower = search.toLowerCase();
       const matchesSearch =
@@ -44,12 +93,35 @@ export default function EmployeesPage() {
 
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [search, roleFilter, statusFilter]);
+  }, [search, roleFilter, statusFilter, employees]);
+
+  if (loading) {
+    return (
+      <PageWrapper title="Employees" description="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageWrapper title="Employees" description="Error">
+        <div className="text-center py-12">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper
       title="Employees"
-      description={`${mockEmployees.length} team members`}
+      description={`${employees.length} team members`}
       actions={
         <Button asChild>
           <Link href="/employees/new">

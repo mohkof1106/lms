@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { mockCustomers } from '@/lib/mock-data/customers';
 import { formatCurrency } from '@/lib/utils/format';
+import { generateOfferPDF } from '@/lib/utils/offer-pdf';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -35,6 +36,8 @@ import {
   Trash2,
   DollarSign,
   Building2,
+  Download,
+  Calculator,
 } from 'lucide-react';
 
 interface LineItem {
@@ -51,9 +54,16 @@ export default function NewOfferPage() {
   const [title, setTitle] = useState('');
   const [validDays, setValidDays] = useState(30);
   const [vatRate, setVatRate] = useState(5);
+  const [discount, setDiscount] = useState(0);
   const [terms, setTerms] = useState('Payment: 50% upon acceptance, 50% upon delivery\nDelivery timeline to be confirmed upon project start\nIncludes: 3 rounds of revisions per deliverable');
   const [notes, setNotes] = useState('');
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+
+  // Internal cost data from estimator
+  const [laborCost, setLaborCost] = useState(0);
+  const [overheadPercent, setOverheadPercent] = useState(0);
+  const [overheadAmount, setOverheadAmount] = useState(0);
+  const [profitAmount, setProfitAmount] = useState(0);
 
   // Load data from sessionStorage (passed from estimator)
   useEffect(() => {
@@ -64,6 +74,11 @@ export default function NewOfferPage() {
         if (data.customerId) setCustomerId(data.customerId);
         if (data.title) setTitle(data.title);
         if (data.lineItems) setLineItems(data.lineItems);
+        if (data.discount) setDiscount(data.discount);
+        if (data.laborCost) setLaborCost(data.laborCost);
+        if (data.overheadPercent) setOverheadPercent(data.overheadPercent);
+        if (data.overheadAmount) setOverheadAmount(data.overheadAmount);
+        if (data.profitAmount) setProfitAmount(data.profitAmount);
         sessionStorage.removeItem('estimateToOffer');
       } catch (e) {
         console.error('Failed to parse estimate data', e);
@@ -96,8 +111,15 @@ export default function NewOfferPage() {
   };
 
   const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  const vatAmount = subtotal * (vatRate / 100);
-  const total = subtotal + vatAmount;
+  const discountAmount = subtotal * (discount / 100);
+  const subtotalAfterDiscount = subtotal - discountAmount;
+  const vatAmount = subtotalAfterDiscount * (vatRate / 100);
+  const total = subtotalAfterDiscount + vatAmount;
+
+  // Internal calculations
+  const totalCost = laborCost + overheadAmount;
+  const actualProfit = total - totalCost;
+  const hasInternalData = laborCost > 0;
 
   const selectedCustomer = mockCustomers.find((c) => c.id === customerId);
 
@@ -114,6 +136,44 @@ export default function NewOfferPage() {
     // In real app, this would save to database
     toast.success('Offer created successfully!');
     router.push('/offers');
+  };
+
+  const handlePreviewPDF = () => {
+    if (!selectedCustomer) {
+      toast.error('Please select a customer first');
+      return;
+    }
+    if (lineItems.length === 0) {
+      toast.error('Please add at least one line item');
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const previewNumber = 'Q' + String(Math.floor(Math.random() * 99999)).padStart(5, '0');
+
+    generateOfferPDF({
+      offerNumber: previewNumber,
+      date: today,
+      customerName: selectedCustomer.name,
+      customerLocation: selectedCustomer.location,
+      customerTrn: selectedCustomer.trn,
+      projectTitle: title || undefined,
+      lineItems: lineItems.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.quantity * item.unitPrice,
+      })),
+      subtotal,
+      discountPercent: discount > 0 ? discount : undefined,
+      discountAmount: discount > 0 ? discountAmount : undefined,
+      vatRate,
+      vatAmount,
+      total,
+      terms,
+    });
+
+    toast.success('PDF preview downloaded!');
   };
 
   return (
@@ -305,6 +365,9 @@ export default function NewOfferPage() {
               <CardContent>
                 <p className="font-medium">{selectedCustomer.name}</p>
                 <p className="text-sm text-muted-foreground">{selectedCustomer.location}</p>
+                {selectedCustomer.trn && (
+                  <p className="text-sm text-muted-foreground">TRN: {selectedCustomer.trn}</p>
+                )}
                 {selectedCustomer.contacts[0] && (
                   <div className="mt-2 text-sm">
                     <p>{selectedCustomer.contacts[0].name}</p>
@@ -315,7 +378,7 @@ export default function NewOfferPage() {
             </Card>
           )}
 
-          {/* Pricing Summary */}
+          {/* Pricing Summary (Customer-facing) */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -333,6 +396,25 @@ export default function NewOfferPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">{formatCurrency(subtotal)}</span>
                 </div>
+                {/* Discount */}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Discount</span>
+                    <Input
+                      type="number"
+                      value={discount}
+                      onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                      className="w-16 h-6 text-center text-sm"
+                      min={0}
+                      max={100}
+                    />
+                    <span className="text-muted-foreground">%</span>
+                  </div>
+                  {discount > 0 && (
+                    <span className="font-medium text-red-600">-{formatCurrency(discountAmount)}</span>
+                  )}
+                </div>
+                {/* VAT */}
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground">VAT</span>
@@ -357,12 +439,59 @@ export default function NewOfferPage() {
             </CardContent>
           </Card>
 
+          {/* Internal Summary (only if from estimator) */}
+          {hasInternalData && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Calculator className="h-5 w-5 text-primary" />
+                  Internal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Labor Cost</span>
+                  <span className="font-medium">{formatCurrency(laborCost)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Overhead ({overheadPercent}%)</span>
+                  <span className="font-medium">{formatCurrency(overheadAmount)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Cost</span>
+                  <span className="font-medium">{formatCurrency(totalCost)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Est. Profit</span>
+                  <span className="font-medium text-green-600">+{formatCurrency(profitAmount)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Actual Profit</span>
+                  <span className={`font-bold ${actualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {actualProfit >= 0 ? '+' : ''}{formatCurrency(actualProfit)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Actions */}
           <Card>
             <CardContent className="pt-6 space-y-2">
               <Button className="w-full" onClick={handleSubmit}>
                 <FileText className="h-4 w-4 mr-2" />
                 Create Offer
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handlePreviewPDF}
+                disabled={!selectedCustomer || lineItems.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Preview PDF
               </Button>
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/offers">Cancel</Link>
