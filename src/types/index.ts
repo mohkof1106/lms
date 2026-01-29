@@ -65,7 +65,7 @@ export interface Customer {
 }
 
 // Service Types
-export type ServiceCategory = 'social' | 'print' | 'branding' | 'video' | 'web' | 'packaging' | 'signage' | 'motion';
+export type ServiceCategory = 'powerpoint' | 'video' | 'branding';
 
 export interface Service {
   id: string;

@@ -33,7 +33,7 @@ const serviceSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters'),
   basePrice: z.number().min(0, 'Price must be positive'),
   estimatedHours: z.number().min(0.5, 'Estimated hours must be at least 0.5'),
-  category: z.enum(['social', 'print', 'branding', 'video', 'web', 'packaging', 'signage', 'motion'] as const),
+  category: z.enum(['powerpoint', 'video', 'branding'] as const),
   active: z.boolean(),
 });
 
@@ -62,7 +62,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           description: '',
           basePrice: 0,
           estimatedHours: 1,
-          category: 'social',
+          category: 'powerpoint',
           active: true,
         },
   });
@@ -170,7 +170,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
               name="basePrice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Base Price (AED)</FormLabel>
+                  <FormLabel>Unit Price (AED)</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
