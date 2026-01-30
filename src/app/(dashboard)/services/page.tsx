@@ -6,9 +6,20 @@ import { PageWrapper } from '@/components/layout';
 import { ServiceCard, ServiceTable } from '@/components/services';
 import { SearchInput } from '@/components/shared';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabase';
 import { Service, ServiceCategory } from '@/types';
 import { Plus, LayoutGrid, List, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const serviceCategoryLabels: Record<ServiceCategory, string> = {
   powerpoint: 'PowerPoint',
@@ -23,6 +34,7 @@ export default function ServicesPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
   // Fetch services from Supabase
   useEffect(() => {
@@ -58,6 +70,26 @@ export default function ServicesPage() {
 
     fetchServices();
   }, []);
+
+  const handleDeleteService = async () => {
+    if (!deleteServiceId) return;
+
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', deleteServiceId);
+
+      if (error) throw error;
+
+      setServices(services.filter((s) => s.id !== deleteServiceId));
+      setDeleteServiceId(null);
+      toast.success('Service deleted successfully');
+    } catch (err) {
+      console.error('Error deleting service:', err);
+      toast.error('Failed to delete service');
+    }
+  };
 
   const categories = Object.entries(serviceCategoryLabels) as [ServiceCategory, string][];
 
@@ -174,12 +206,37 @@ export default function ServicesPage() {
       ) : viewMode === 'grid' ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredServices.map((service) => (
-            <ServiceCard key={service.id} service={service} />
+            <ServiceCard
+              key={service.id}
+              service={service}
+              onDelete={(id) => setDeleteServiceId(id)}
+            />
           ))}
         </div>
       ) : (
-        <ServiceTable services={filteredServices} />
+        <ServiceTable services={filteredServices} onDelete={(id) => setDeleteServiceId(id)} />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteServiceId} onOpenChange={() => setDeleteServiceId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this service? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteService}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageWrapper>
   );
 }

@@ -18,13 +18,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared';
-import { Service } from '@/types';
-import { serviceCategoryLabels } from '@/lib/mock-data/services';
+import { Service, ServiceCategory } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
 import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
 
+const serviceCategoryLabels: Record<ServiceCategory, string> = {
+  powerpoint: 'Power Point',
+  video: 'Video',
+  branding: 'Branding',
+};
+
 interface ServiceTableProps {
   services: Service[];
+  onDelete?: (id: string) => void;
 }
 
 const categoryColors: Record<string, string> = {
@@ -38,7 +44,7 @@ const categoryColors: Record<string, string> = {
   motion: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
 };
 
-export function ServiceTable({ services }: ServiceTableProps) {
+export function ServiceTable({ services, onDelete }: ServiceTableProps) {
   return (
     <div className="rounded-lg border border-border">
       <Table>
@@ -108,7 +114,10 @@ export function ServiceTable({ services }: ServiceTableProps) {
                         Edit
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => onDelete?.(service.id)}
+                    >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </DropdownMenuItem>

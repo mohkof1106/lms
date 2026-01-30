@@ -9,6 +9,16 @@ import { StatusBadge } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabase';
 import { Service, ServiceCategory } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
@@ -16,6 +26,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   Pencil,
+  Trash2,
   DollarSign,
   Clock,
   Tag,
@@ -49,6 +60,7 @@ export default function ServiceDetailPage() {
 
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     async function fetchService() {
@@ -137,6 +149,23 @@ export default function ServiceDetailPage() {
     router.push(`/services/${service.id}`);
   };
 
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', service.id);
+
+      if (error) throw error;
+
+      toast.success('Service deleted successfully!');
+      router.push('/services');
+    } catch (err) {
+      console.error('Error deleting service:', err);
+      toast.error('Failed to delete service');
+    }
+  };
+
   if (isEditMode) {
     return (
       <PageWrapper
@@ -176,6 +205,14 @@ export default function ServiceDetailPage() {
               <Pencil className="h-4 w-4 mr-2" />
               Edit
             </Link>
+          </Button>
+          <Button
+            variant="outline"
+            className="text-destructive hover:text-destructive"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
           </Button>
         </div>
       }
@@ -287,6 +324,27 @@ export default function ServiceDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Service</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{service.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageWrapper>
   );
 }
