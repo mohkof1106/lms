@@ -42,6 +42,7 @@ const createEmployeeSchema = (isEditMode: boolean) => z.object({
   jobTitle: z.string().min(2, 'Job title is required'),
   department: z.string().min(2, 'Department is required'),
   baseSalary: z.number().min(0, 'Salary must be positive'),
+  compensation: z.number().min(0, 'Compensation must be positive'),
   insurance: z.number().min(0, 'Insurance must be positive'),
   ticketValue: z.number().min(0, 'Ticket value must be positive'),
   visaCost: z.number().min(0, 'Visa cost must be positive'),
@@ -91,6 +92,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
           jobTitle: employee.jobTitle,
           department: employee.department,
           baseSalary: employee.baseSalary,
+          compensation: employee.compensation,
           insurance: employee.insurance,
           ticketValue: employee.ticketValue,
           visaCost: employee.visaCost,
@@ -111,6 +113,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
           jobTitle: '',
           department: 'Creative',
           baseSalary: 0,
+          compensation: 0,
           insurance: 5000,
           ticketValue: 3500,
           visaCost: 4000,
@@ -386,6 +389,25 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
                       onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="compensation"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monthly Compensation (AED)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
+                    />
+                  </FormControl>
+                  <FormDescription>Additional monthly compensation</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

@@ -49,6 +49,7 @@ export default function EmployeesPage() {
           jobTitle: e.job_title || '',
           department: e.department || '',
           baseSalary: Number(e.base_salary),
+          compensation: Number((e as any).compensation || 0),
           insurance: Number(e.insurance),
           ticketValue: Number(e.ticket_value),
           visaCost: Number(e.visa_cost),

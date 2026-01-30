@@ -24,6 +24,7 @@ export default function NewEmployeePage() {
         job_title: data.jobTitle || null,
         department: data.department || null,
         base_salary: data.baseSalary,
+        compensation: data.compensation,
         insurance: data.insurance,
         ticket_value: data.ticketValue,
         visa_cost: data.visaCost,

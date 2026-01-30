@@ -12,6 +12,7 @@ export interface Employee {
   jobTitle: string;
   department: string;
   baseSalary: number;
+  compensation: number;
   insurance: number;
   ticketValue: number;
   visaCost: number;
@@ -61,6 +62,7 @@ export interface Customer {
   website?: string;
   industry?: string;
   notes?: string;
+  trn?: string; // Tax Registration Number
   createdAt: string;
   activeProjects: number;
   activePackages: number;
@@ -210,12 +212,19 @@ export interface Offer {
   validUntil: string;
   lineItems: OfferLineItem[];
   subtotal: number;
+  discountPercent?: number;
+  discountAmount?: number;
   vatRate: number;
   vatAmount: number;
   total: number;
   terms?: string;
   status: OfferStatus;
   notes?: string;
+  // Internal cost fields (from estimator)
+  laborCost?: number;
+  overheadPercent?: number;
+  overheadAmount?: number;
+  profitAmount?: number;
 }
 
 // Invoice Types

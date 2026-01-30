@@ -97,6 +97,7 @@ export default function AssetsPage() {
           jobTitle: '',
           department: '',
           baseSalary: 0,
+          compensation: 0,
           insurance: 0,
           ticketValue: 0,
           visaCost: 0,
