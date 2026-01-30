@@ -27,7 +27,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Employee, UserRole } from '@/types';
 import { roleLabels } from '@/lib/utils/format';
-import { User, Briefcase, DollarSign, Calendar, Phone, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Briefcase, DollarSign, Calendar, Phone, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 // Base schema for employee fields
 const createEmployeeSchema = (isEditMode: boolean) => z.object({
@@ -68,9 +68,10 @@ interface EmployeeFormProps {
   employee?: Employee;
   onSubmit: (data: EmployeeFormData) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps) {
+export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: EmployeeFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -521,10 +522,13 @@ export function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit">{employee ? 'Save Changes' : 'Create Employee'}</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {employee ? 'Save Changes' : 'Create Employee'}
+          </Button>
         </div>
       </form>
     </Form>

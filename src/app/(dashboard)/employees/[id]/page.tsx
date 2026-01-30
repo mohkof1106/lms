@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
@@ -9,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getEmployeeById, calculateEmployeeCost } from '@/lib/mock-data/employees';
+import { supabase } from '@/lib/supabase';
+import { Employee, EmployeeCostBreakdown } from '@/types';
 import { formatDate, roleLabels } from '@/lib/utils/format';
 import { toast } from 'sonner';
 import {
@@ -22,6 +24,7 @@ import {
   MapPin,
   User,
   Shield,
+  Loader2,
 } from 'lucide-react';
 
 export default function EmployeeDetailPage() {
@@ -30,7 +33,85 @@ export default function EmployeeDetailPage() {
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
 
-  const employee = getEmployeeById(params.id as string);
+  const [employee, setEmployee] = useState<Employee | null>(null);
+  const [costs, setCosts] = useState<EmployeeCostBreakdown | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch employee from Supabase
+  useEffect(() => {
+    async function fetchEmployee() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('id', params.id as string)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          // Map snake_case to camelCase
+          const mapped: Employee = {
+            id: data.id,
+            fullName: data.full_name,
+            email: data.email,
+            phone: data.phone || '',
+            role: data.role,
+            jobTitle: data.job_title || '',
+            department: data.department || '',
+            baseSalary: Number(data.base_salary),
+            insurance: Number(data.insurance),
+            ticketValue: Number(data.ticket_value),
+            visaCost: Number(data.visa_cost),
+            vacationDays: data.vacation_days,
+            startDate: data.start_date,
+            endDate: data.end_date || undefined,
+            active: data.active,
+            emergencyContact: data.emergency_contact as Employee['emergencyContact'],
+            documents: data.documents as Employee['documents'],
+          };
+          setEmployee(mapped);
+
+          // Fetch costs using RPC
+          const { data: costData } = await supabase
+            .rpc('calculate_employee_hourly_cost', { p_employee_id: data.id });
+
+          if (costData && costData[0]) {
+            const c = costData[0];
+            setCosts({
+              monthlyCost: c.monthly_cost,
+              fullCost: c.full_monthly_cost,
+              yearlyCost: c.yearly_cost,
+              dailyCost: c.daily_cost,
+              hourlyCost: c.hourly_cost,
+              workingDaysPerYear: c.working_days_per_year,
+              assetDepreciationYearly: c.asset_depreciation_monthly * 12,
+              assetDepreciationMonthly: c.asset_depreciation_monthly,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching employee:', err);
+        toast.error('Failed to load employee');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEmployee();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <PageWrapper title="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
 
   if (!employee) {
     return (
@@ -45,8 +126,6 @@ export default function EmployeeDetailPage() {
     );
   }
 
-  const costs = calculateEmployeeCost(employee);
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -56,10 +135,45 @@ export default function EmployeeDetailPage() {
       .slice(0, 2);
   };
 
-  const handleSave = (data: any) => {
-    console.log('Updated employee data:', data);
-    toast.success('Employee updated successfully!');
-    router.push(`/employees/${employee.id}`);
+  const handleSave = async (data: any) => {
+    try {
+      setIsSubmitting(true);
+
+      // Map camelCase form data to snake_case for database
+      const dbData = {
+        full_name: data.fullName,
+        email: data.email,
+        phone: data.phone || null,
+        role: data.role,
+        job_title: data.jobTitle || null,
+        department: data.department || null,
+        base_salary: data.baseSalary,
+        insurance: data.insurance,
+        ticket_value: data.ticketValue,
+        visa_cost: data.visaCost,
+        vacation_days: data.vacationDays,
+        start_date: data.startDate,
+        end_date: data.endDate || null,
+        active: data.active ?? true,
+        emergency_contact: data.emergencyContact || null,
+        documents: data.documents || null,
+      };
+
+      const { error } = await supabase
+        .from('employees')
+        .update(dbData)
+        .eq('id', employee.id);
+
+      if (error) throw error;
+
+      toast.success('Employee updated successfully!');
+      router.push(`/employees/${employee.id}`);
+    } catch (err) {
+      console.error('Error updating employee:', err);
+      toast.error('Failed to update employee');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -80,7 +194,7 @@ export default function EmployeeDetailPage() {
           </Button>
         }
       >
-        <EmployeeForm employee={employee} onSubmit={handleSave} onCancel={handleCancel} />
+        <EmployeeForm employee={employee} onSubmit={handleSave} onCancel={handleCancel} isSubmitting={isSubmitting} />
       </PageWrapper>
     );
   }
@@ -249,7 +363,7 @@ export default function EmployeeDetailPage() {
 
         {/* Right Column - Cost Breakdown */}
         <div>
-          <CostBreakdown employee={employee} costs={costs} />
+          {costs && <CostBreakdown employee={employee} costs={costs} />}
         </div>
       </div>
     </PageWrapper>

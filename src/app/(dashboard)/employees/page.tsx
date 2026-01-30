@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { Employee } from '@/types';
 import { Plus, Download, Loader2 } from 'lucide-react';
 import { roleLabels } from '@/lib/utils/format';
+import { toast } from 'sonner';
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -94,6 +95,23 @@ export default function EmployeesPage() {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [search, roleFilter, statusFilter, employees]);
+
+  const handleDeleteEmployee = async (employeeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', employeeId);
+
+      if (error) throw error;
+
+      setEmployees(employees.filter((e) => e.id !== employeeId));
+      toast.success('Employee deleted successfully');
+    } catch (err) {
+      console.error('Error deleting employee:', err);
+      toast.error('Failed to delete employee');
+    }
+  };
 
   if (loading) {
     return (
@@ -175,7 +193,7 @@ export default function EmployeesPage() {
           <p className="text-muted-foreground">No employees found matching your criteria.</p>
         </div>
       ) : (
-        <EmployeeTable employees={filteredEmployees} />
+        <EmployeeTable employees={filteredEmployees} onDelete={handleDeleteEmployee} />
       )}
     </PageWrapper>
   );

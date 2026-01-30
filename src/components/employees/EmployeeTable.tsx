@@ -17,6 +17,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { StatusBadge } from '@/components/shared';
 import { Employee, EmployeeCostBreakdown } from '@/types';
@@ -26,10 +36,13 @@ import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
 
 interface EmployeeTableProps {
   employees: Employee[];
+  onDelete?: (employeeId: string) => void;
 }
 
-export function EmployeeTable({ employees }: EmployeeTableProps) {
+export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
   const [costs, setCosts] = useState<Record<string, EmployeeCostBreakdown>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
   // Fetch costs from Supabase for all employees
   useEffect(() => {
@@ -73,6 +86,19 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const handleDeleteClick = (employee: Employee) => {
+    setEmployeeToDelete(employee);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (employeeToDelete && onDelete) {
+      onDelete(employeeToDelete.id);
+    }
+    setDeleteDialogOpen(false);
+    setEmployeeToDelete(null);
   };
 
   return (
@@ -154,7 +180,10 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
                           Edit
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => handleDeleteClick(employee)}
+                      >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
                       </DropdownMenuItem>
@@ -166,6 +195,23 @@ export function EmployeeTable({ employees }: EmployeeTableProps) {
           })}
         </TableBody>
       </Table>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Employee</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {employeeToDelete?.fullName}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
