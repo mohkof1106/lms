@@ -477,7 +477,7 @@ export default function AssetsPage() {
               Add a new company asset. Depreciation is calculated automatically.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-6">
+          <div className="mt-6 px-4 pb-4">
             <AssetForm
               employees={employees.map((e) => ({
                 id: e.id,
@@ -500,7 +500,7 @@ export default function AssetsPage() {
               Update asset information. Depreciation recalculates automatically.
             </SheetDescription>
           </SheetHeader>
-          <div className="mt-6">
+          <div className="mt-6 px-4 pb-4">
             {selectedAsset && (
               <AssetForm
                 asset={selectedAsset}
