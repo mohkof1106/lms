@@ -296,13 +296,17 @@ export default function EmployeeDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Base Salary</p>
-                      <p className="font-medium">{employee.baseSalary.toLocaleString()} AED/mo</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Monthly Compensation</p>
-                      <p className="font-medium">{(employee.compensation || 0).toLocaleString()} AED/mo</p>
+                    {/* Monthly Salary Group */}
+                    <div className="col-span-2 md:col-span-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <p className="text-sm text-muted-foreground mb-2">Monthly Salary</p>
+                      <div className="flex items-baseline gap-2">
+                        <p className="text-2xl font-semibold text-primary">
+                          {(employee.baseSalary + (employee.compensation || 0)).toLocaleString()} AED
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          ({employee.baseSalary.toLocaleString()} base + {(employee.compensation || 0).toLocaleString()} compensation)
+                        </p>
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Insurance (Annual)</p>

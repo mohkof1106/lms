@@ -54,16 +54,21 @@ export function CostBreakdown({ employee, costs }: CostBreakdownProps) {
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-muted-foreground">Monthly Cost Breakdown</h4>
           <div className="grid gap-2 text-sm">
-            <div className="flex justify-between">
-              <span>Base Salary</span>
-              <span className="font-medium">{formatCurrency(employee.baseSalary)}</span>
-            </div>
-            {(employee.compensation || 0) > 0 && (
-              <div className="flex justify-between">
-                <span>+ Compensation</span>
-                <span>{formatCurrency(employee.compensation)}</span>
+            {/* Monthly Salary Group */}
+            <div className="p-2 rounded bg-primary/5 space-y-1">
+              <div className="flex justify-between text-muted-foreground">
+                <span>Base Salary</span>
+                <span>{formatCurrency(employee.baseSalary)}</span>
               </div>
-            )}
+              <div className="flex justify-between text-muted-foreground">
+                <span>+ Compensation</span>
+                <span>{formatCurrency(employee.compensation || 0)}</span>
+              </div>
+              <div className="flex justify-between font-medium pt-1 border-t border-primary/20">
+                <span>= Monthly Salary</span>
+                <span className="text-primary">{formatCurrency(employee.baseSalary + (employee.compensation || 0))}</span>
+              </div>
+            </div>
             <div className="flex justify-between text-muted-foreground">
               <span>+ Insurance ({formatCurrency(employee.insurance)}/yr ÷ 12)</span>
               <span>{formatCurrency(employee.insurance / 12)}</span>

@@ -114,8 +114,7 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
             <TableHead className="w-[250px]">Employee</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Department</TableHead>
-            <TableHead className="text-right">Salary</TableHead>
-            <TableHead className="text-right">Compensation</TableHead>
+            <TableHead className="text-right">Monthly Salary</TableHead>
             <TableHead className="text-right">Benefits</TableHead>
             <TableHead className="text-right">Overhead</TableHead>
             <TableHead className="text-right">Hourly</TableHead>
@@ -154,12 +153,14 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
                   <span className="text-sm text-muted-foreground">{employee.department}</span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className="text-sm">{formatCurrency(employee.baseSalary)}</span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-sm text-muted-foreground">
-                    {employee.compensation ? formatCurrency(employee.compensation) : '—'}
-                  </span>
+                  <div>
+                    <span className="font-medium">{formatCurrency(employee.baseSalary + (employee.compensation || 0))}</span>
+                    {(employee.compensation || 0) > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(employee.baseSalary)} + {formatCurrency(employee.compensation)}
+                      </p>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-right">
                   <span className="text-sm text-muted-foreground">
