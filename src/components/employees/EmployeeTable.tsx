@@ -118,7 +118,6 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
             <TableHead className="text-right">Compensation</TableHead>
             <TableHead className="text-right">Benefits</TableHead>
             <TableHead className="text-right">Overhead</TableHead>
-            <TableHead className="text-right">Eff. Days</TableHead>
             <TableHead className="text-right">Hourly</TableHead>
             <TableHead className="text-right">Monthly</TableHead>
             <TableHead>Status</TableHead>
@@ -170,11 +169,6 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
                 <TableCell className="text-right">
                   <span className="text-sm text-muted-foreground">
                     {employeeCosts ? formatCurrency(employeeCosts.overheadShare) : '—'}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-sm text-muted-foreground">
-                    {employeeCosts ? `${employeeCosts.workingDaysPerYear}d` : '—'}
                   </span>
                 </TableCell>
                 <TableCell className="text-right">
