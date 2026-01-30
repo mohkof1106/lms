@@ -407,7 +407,6 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
                       onChange={(e) => field.onChange(e.target.valueAsNumber || 0)}
                     />
                   </FormControl>
-                  <FormDescription>Additional monthly compensation</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
