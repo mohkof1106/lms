@@ -187,13 +187,18 @@ export const calculateEmployeeCost = (employee: Employee): EmployeeCostBreakdown
   const assetDepreciationYearly = assignedAssets.reduce((sum, asset) => sum + asset.depreciationPerYear, 0);
   const assetDepreciationMonthly = assetDepreciationYearly / 12;
 
-  // Monthly Cost = Base Salary + (Insurance / 12) + (Ticket Value / 12) + (Visa Cost / 24) + (13th Salary / 12) + Asset Depreciation
-  const monthlyCost =
-    employee.baseSalary +
+  // Benefits cost (monthly): insurance + ticket + visa + 13th month
+  const benefitsCost =
     employee.insurance / 12 +
     employee.ticketValue / 12 +
     employee.visaCost / 24 +
-    employee.baseSalary / 12 + // 13th salary
+    employee.baseSalary / 12; // 13th salary
+
+  // Monthly Cost = Base Salary + Compensation + Benefits + Asset Depreciation
+  const monthlyCost =
+    employee.baseSalary +
+    (employee.compensation || 0) +
+    benefitsCost +
     assetDepreciationMonthly;
 
   // Full Cost = Monthly Cost + Overhead Share
@@ -220,6 +225,8 @@ export const calculateEmployeeCost = (employee: Employee): EmployeeCostBreakdown
     workingDaysPerYear,
     assetDepreciationYearly: Math.round(assetDepreciationYearly * 100) / 100,
     assetDepreciationMonthly: Math.round(assetDepreciationMonthly * 100) / 100,
+    overheadShare: Math.round(overheadSharePerEmployee * 100) / 100,
+    benefitsCost: Math.round(benefitsCost * 100) / 100,
   };
 };
 

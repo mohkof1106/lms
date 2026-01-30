@@ -42,6 +42,8 @@ export interface EmployeeCostBreakdown {
   workingDaysPerYear: number;
   assetDepreciationYearly: number;
   assetDepreciationMonthly: number;
+  overheadShare: number;
+  benefitsCost: number; // insurance/12 + ticket/12 + visa/24 + 13th month
 }
 
 // Customer Types

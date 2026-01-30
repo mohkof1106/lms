@@ -66,6 +66,8 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
               workingDaysPerYear: c.working_days_per_year,
               assetDepreciationYearly: c.asset_depreciation_monthly * 12,
               assetDepreciationMonthly: c.asset_depreciation_monthly,
+              overheadShare: c.overhead_share || 0,
+              benefitsCost: c.benefits_cost || 0,
             };
           }
         })
@@ -106,11 +108,16 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[300px]">Employee</TableHead>
+            <TableHead className="w-[250px]">Employee</TableHead>
             <TableHead>Role</TableHead>
             <TableHead>Department</TableHead>
-            <TableHead className="text-right">Hourly Cost</TableHead>
-            <TableHead className="text-right">Monthly Cost</TableHead>
+            <TableHead className="text-right">Salary</TableHead>
+            <TableHead className="text-right">Compensation</TableHead>
+            <TableHead className="text-right">Benefits</TableHead>
+            <TableHead className="text-right">Overhead</TableHead>
+            <TableHead className="text-right">Eff. Days</TableHead>
+            <TableHead className="text-right">Hourly</TableHead>
+            <TableHead className="text-right">Monthly</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -143,6 +150,29 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">{employee.department}</span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm">{formatCurrency(employee.baseSalary)}</span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm text-muted-foreground">
+                    {employee.compensation ? formatCurrency(employee.compensation) : '—'}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm text-muted-foreground">
+                    {employeeCosts ? formatCurrency(employeeCosts.benefitsCost) : '—'}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm text-muted-foreground">
+                    {employeeCosts ? formatCurrency(employeeCosts.overheadShare) : '—'}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="text-sm text-muted-foreground">
+                    {employeeCosts ? `${employeeCosts.workingDaysPerYear}d` : '—'}
+                  </span>
                 </TableCell>
                 <TableCell className="text-right">
                   <span className="font-medium">

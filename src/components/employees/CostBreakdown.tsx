@@ -50,102 +50,117 @@ export function CostBreakdown({ employee, costs }: CostBreakdownProps) {
 
         <Separator />
 
-        {/* Input Costs */}
+        {/* Monthly Cost Breakdown */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Input Costs</h4>
-          <div className="grid gap-2">
-            <div className="flex justify-between text-sm">
+          <h4 className="text-sm font-medium text-muted-foreground">Monthly Cost Breakdown</h4>
+          <div className="grid gap-2 text-sm">
+            <div className="flex justify-between">
               <span>Base Salary</span>
               <span className="font-medium">{formatCurrency(employee.baseSalary)}</span>
             </div>
-            <div className="flex justify-between text-sm">
-              <span>Annual Insurance</span>
-              <span className="text-muted-foreground">{formatCurrency(employee.insurance)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Annual Ticket Value</span>
-              <span className="text-muted-foreground">{formatCurrency(employee.ticketValue)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Visa Cost (2 years)</span>
-              <span className="text-muted-foreground">{formatCurrency(employee.visaCost)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>13th Month Salary</span>
-              <span className="text-muted-foreground">{formatCurrency(employee.baseSalary / 12)}/mo</span>
-            </div>
-            {costs.assetDepreciationMonthly > 0 && (
-              <div className="flex justify-between text-sm">
-                <span>Asset Depreciation</span>
-                <span className="text-muted-foreground">{formatCurrency(costs.assetDepreciationMonthly)}/mo</span>
+            {(employee.compensation || 0) > 0 && (
+              <div className="flex justify-between">
+                <span>+ Compensation</span>
+                <span>{formatCurrency(employee.compensation)}</span>
               </div>
             )}
+            <div className="flex justify-between text-muted-foreground">
+              <span>+ Insurance ({formatCurrency(employee.insurance)}/yr ÷ 12)</span>
+              <span>{formatCurrency(employee.insurance / 12)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>+ Ticket ({formatCurrency(employee.ticketValue)}/yr ÷ 12)</span>
+              <span>{formatCurrency(employee.ticketValue / 12)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>+ Visa ({formatCurrency(employee.visaCost)}/2yr ÷ 24)</span>
+              <span>{formatCurrency(employee.visaCost / 24)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>+ 13th Month ({formatCurrency(employee.baseSalary)} ÷ 12)</span>
+              <span>{formatCurrency(employee.baseSalary / 12)}</span>
+            </div>
+            {costs.assetDepreciationMonthly > 0 && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>+ Asset Depreciation</span>
+                <span>{formatCurrency(costs.assetDepreciationMonthly)}</span>
+              </div>
+            )}
+            <div className="flex justify-between pt-2 border-t font-medium">
+              <span>= Monthly Cost (before overhead)</span>
+              <span>{formatCurrency(costs.monthlyCost)}</span>
+            </div>
           </div>
         </div>
 
         <Separator />
 
-        {/* Calculated Costs */}
+        {/* With Overhead */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Calculated Costs</h4>
-          <div className="grid gap-3">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Monthly Cost</span>
-              </div>
-              <span className="font-semibold">{formatCurrency(costs.monthlyCost)}</span>
+          <h4 className="text-sm font-medium text-muted-foreground">Full Cost (with Overhead)</h4>
+          <div className="grid gap-2 text-sm">
+            <div className="flex justify-between">
+              <span>Monthly Cost</span>
+              <span>{formatCurrency(costs.monthlyCost)}</span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Full Cost (with overhead)</span>
-              </div>
-              <span className="font-semibold">{formatCurrency(costs.fullCost)}</span>
+            <div className="flex justify-between text-muted-foreground">
+              <span>+ Overhead Share (company costs ÷ employees)</span>
+              <span>{formatCurrency(costs.overheadShare || 0)}</span>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Yearly Cost</span>
-              </div>
-              <span className="font-semibold">{formatCurrency(costs.yearlyCost)}</span>
+            <div className="flex justify-between pt-2 border-t">
+              <span className="font-medium">= Full Monthly Cost</span>
+              <span className="font-semibold text-primary">{formatCurrency(costs.fullCost)}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>× 12 months = Yearly Cost</span>
+              <span>{formatCurrency(costs.yearlyCost)}</span>
             </div>
           </div>
         </div>
 
         <Separator />
 
-        {/* Billable Rates */}
+        {/* Hourly Rate Calculation */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Billable Rates</h4>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-4 rounded-lg border border-border text-center">
-              <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-                <Clock className="h-4 w-4" />
-                <span className="text-xs">Hourly</span>
-              </div>
-              <p className="text-xl font-bold text-primary">{formatCurrency(costs.hourlyCost)}</p>
+          <h4 className="text-sm font-medium text-muted-foreground">Hourly Rate Calculation</h4>
+          <div className="grid gap-2 text-sm">
+            <div className="flex justify-between text-muted-foreground">
+              <span>Working days: 260 - {employee.vacationDays} vacation - 13 holidays</span>
+              <span>{costs.workingDaysPerYear} days</span>
             </div>
-            <div className="p-4 rounded-lg border border-border text-center">
-              <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-                <Calendar className="h-4 w-4" />
-                <span className="text-xs">Daily</span>
-              </div>
-              <p className="text-xl font-bold text-primary">{formatCurrency(costs.dailyCost)}</p>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Effective hours: {costs.workingDaysPerYear} days × 8 hrs</span>
+              <span>{costs.workingDaysPerYear * 8} hrs/yr</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t">
+              <span>Yearly ÷ Hours = Hourly Rate</span>
+              <span className="font-semibold text-primary">{formatCurrency(costs.hourlyCost)}/hr</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <span>Hourly × 8 = Daily Rate</span>
+              <span>{formatCurrency(costs.dailyCost)}/day</span>
             </div>
           </div>
         </div>
 
         <Separator />
 
-        {/* Working Days */}
-        <div className="p-3 rounded-lg bg-primary/5 text-sm">
-          <p className="text-muted-foreground">
-            Working days per year: <span className="font-medium text-foreground">{costs.workingDaysPerYear} days</span>
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Based on {employee.vacationDays} vacation days + public holidays
-          </p>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 text-center">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+              <Clock className="h-4 w-4" />
+              <span className="text-xs">Hourly</span>
+            </div>
+            <p className="text-xl font-bold text-primary">{formatCurrency(costs.hourlyCost)}</p>
+          </div>
+          <div className="p-4 rounded-lg border border-border text-center">
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
+              <Calendar className="h-4 w-4" />
+              <span className="text-xs">Daily</span>
+            </div>
+            <p className="text-xl font-bold">{formatCurrency(costs.dailyCost)}</p>
+          </div>
         </div>
       </CardContent>
     </Card>

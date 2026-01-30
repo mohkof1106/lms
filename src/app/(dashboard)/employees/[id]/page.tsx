@@ -90,6 +90,8 @@ export default function EmployeeDetailPage() {
               workingDaysPerYear: c.working_days_per_year,
               assetDepreciationYearly: c.asset_depreciation_monthly * 12,
               assetDepreciationMonthly: c.asset_depreciation_monthly,
+              overheadShare: c.overhead_share || 0,
+              benefitsCost: c.benefits_cost || 0,
             });
           }
         }
@@ -294,6 +296,10 @@ export default function EmployeeDetailPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Base Salary</p>
                       <p className="font-medium">{employee.baseSalary.toLocaleString()} AED/mo</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Monthly Compensation</p>
+                      <p className="font-medium">{(employee.compensation || 0).toLocaleString()} AED/mo</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Insurance (Annual)</p>
