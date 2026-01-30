@@ -167,7 +167,7 @@ export default function AssetsPage() {
           useful_life_years: data.usefulLifeYears,
           current_value: data.purchasePrice,
           depreciation_per_year: data.purchasePrice / data.usefulLifeYears,
-          assigned_to: data.assignedTo || null,
+          assigned_to: data.assignedTo === 'none' ? null : data.assignedTo || null,
           serial_number: data.serialNumber || null,
           notes: data.notes || null,
         })
@@ -212,7 +212,7 @@ export default function AssetsPage() {
           purchase_price: data.purchasePrice,
           useful_life_years: data.usefulLifeYears,
           depreciation_per_year: data.purchasePrice / data.usefulLifeYears,
-          assigned_to: data.assignedTo || null,
+          assigned_to: data.assignedTo === 'none' ? null : data.assignedTo || null,
           serial_number: data.serialNumber || null,
           notes: data.notes || null,
         })
@@ -231,7 +231,7 @@ export default function AssetsPage() {
                 purchasePrice: data.purchasePrice,
                 usefulLifeYears: data.usefulLifeYears,
                 depreciationPerYear: data.purchasePrice / data.usefulLifeYears,
-                assignedTo: data.assignedTo || undefined,
+                assignedTo: data.assignedTo === 'none' ? undefined : data.assignedTo || undefined,
                 serialNumber: data.serialNumber || undefined,
                 notes: data.notes || undefined,
               }

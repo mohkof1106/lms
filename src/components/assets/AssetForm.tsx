@@ -70,7 +70,7 @@ export function AssetForm({ asset, employees, onSubmit, onCancel }: AssetFormPro
           purchasePrice: asset.purchasePrice,
           purchaseDate: asset.purchaseDate,
           usefulLifeYears: asset.usefulLifeYears,
-          assignedTo: asset.assignedTo || '',
+          assignedTo: asset.assignedTo || 'none',
           notes: asset.notes || '',
         }
       : {
@@ -80,7 +80,7 @@ export function AssetForm({ asset, employees, onSubmit, onCancel }: AssetFormPro
           purchasePrice: 0,
           purchaseDate: new Date().toISOString().split('T')[0],
           usefulLifeYears: 3,
-          assignedTo: '',
+          assignedTo: 'none',
           notes: '',
         },
   });
@@ -240,7 +240,7 @@ export function AssetForm({ asset, employees, onSubmit, onCancel }: AssetFormPro
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="none">Unassigned</SelectItem>
                   {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.fullName}{emp.jobTitle ? ` - ${emp.jobTitle}` : ''}
