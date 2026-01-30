@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
@@ -8,7 +9,8 @@ import { StatusBadge } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getServiceById, serviceCategoryLabels } from '@/lib/mock-data/services';
+import { supabase } from '@/lib/supabase';
+import { Service, ServiceCategory } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
 import { toast } from 'sonner';
 import {
@@ -18,6 +20,7 @@ import {
   Clock,
   Tag,
   FileText,
+  Loader2,
 } from 'lucide-react';
 
 const categoryColors: Record<string, string> = {
@@ -29,6 +32,13 @@ const categoryColors: Record<string, string> = {
   packaging: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
   signage: 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-300',
   motion: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
+  powerpoint: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+};
+
+const serviceCategoryLabels: Record<ServiceCategory, string> = {
+  powerpoint: 'Power Point',
+  video: 'Video',
+  branding: 'Branding',
 };
 
 export default function ServiceDetailPage() {
@@ -37,7 +47,53 @@ export default function ServiceDetailPage() {
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
 
-  const service = getServiceById(params.id as string);
+  const [service, setService] = useState<Service | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchService() {
+      try {
+        const serviceId = params.id as string;
+        if (!serviceId) return;
+
+        const { data, error } = await supabase
+          .from('services')
+          .select('*')
+          .eq('id', serviceId)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setService({
+            id: data.id,
+            name: data.name,
+            description: data.description || '',
+            basePrice: Number(data.base_price),
+            estimatedHours: data.estimated_hours,
+            category: data.category as ServiceCategory,
+            active: data.active,
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching service:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchService();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <PageWrapper title="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
 
   if (!service) {
     return (
@@ -52,10 +108,29 @@ export default function ServiceDetailPage() {
     );
   }
 
-  const handleSave = (data: any) => {
-    console.log('Updated service data:', data);
-    toast.success('Service updated successfully!');
-    router.push(`/services/${service.id}`);
+  const handleSave = async (data: any) => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .update({
+          name: data.name,
+          description: data.description,
+          base_price: data.basePrice,
+          estimated_hours: data.estimatedHours,
+          category: data.category,
+          active: data.active,
+        })
+        .eq('id', service.id);
+
+      if (error) throw error;
+
+      toast.success('Service updated successfully!');
+      router.push(`/services/${service.id}`);
+      router.refresh();
+    } catch (err) {
+      console.error('Error updating service:', err);
+      toast.error('Failed to update service');
+    }
   };
 
   const handleCancel = () => {

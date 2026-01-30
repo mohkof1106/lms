@@ -22,9 +22,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { assetCategoryLabels } from '@/lib/mock-data/assets';
-import { mockEmployees } from '@/lib/mock-data/employees';
+import { Asset, AssetCategory } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
+
+const assetCategoryLabels: Record<AssetCategory, string> = {
+  equipment: 'Equipment',
+  software: 'Software',
+  furniture: 'Furniture',
+  vehicle: 'Vehicle',
+  other: 'Other',
+};
 
 const assetSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -39,31 +46,48 @@ const assetSchema = z.object({
 
 export type AssetFormData = z.infer<typeof assetSchema>;
 
+interface Employee {
+  id: string;
+  fullName: string;
+  jobTitle?: string;
+}
+
 interface AssetFormProps {
+  asset?: Asset;
+  employees: Employee[];
   onSubmit: (data: AssetFormData) => void;
   onCancel: () => void;
 }
 
-export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
+export function AssetForm({ asset, employees, onSubmit, onCancel }: AssetFormProps) {
   const form = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema),
-    defaultValues: {
-      name: '',
-      category: 'equipment',
-      serialNumber: '',
-      purchasePrice: 0,
-      purchaseDate: new Date().toISOString().split('T')[0],
-      usefulLifeYears: 3,
-      assignedTo: '',
-      notes: '',
-    },
+    defaultValues: asset
+      ? {
+          name: asset.name,
+          category: asset.category,
+          serialNumber: asset.serialNumber || '',
+          purchasePrice: asset.purchasePrice,
+          purchaseDate: asset.purchaseDate,
+          usefulLifeYears: asset.usefulLifeYears,
+          assignedTo: asset.assignedTo || '',
+          notes: asset.notes || '',
+        }
+      : {
+          name: '',
+          category: 'equipment',
+          serialNumber: '',
+          purchasePrice: 0,
+          purchaseDate: new Date().toISOString().split('T')[0],
+          usefulLifeYears: 3,
+          assignedTo: '',
+          notes: '',
+        },
   });
 
   const purchasePrice = form.watch('purchasePrice');
   const usefulLifeYears = form.watch('usefulLifeYears');
   const depreciationPerYear = purchasePrice && usefulLifeYears ? purchasePrice / usefulLifeYears : 0;
-
-  const activeEmployees = mockEmployees.filter((e) => e.active);
 
   return (
     <Form {...form}>
@@ -217,9 +241,9 @@ export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="">Unassigned</SelectItem>
-                  {activeEmployees.map((emp) => (
+                  {employees.map((emp) => (
                     <SelectItem key={emp.id} value={emp.id}>
-                      {emp.fullName} - {emp.jobTitle}
+                      {emp.fullName}{emp.jobTitle ? ` - ${emp.jobTitle}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -257,7 +281,7 @@ export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit">Add Asset</Button>
+          <Button type="submit">{asset ? 'Save Changes' : 'Add Asset'}</Button>
         </div>
       </form>
     </Form>

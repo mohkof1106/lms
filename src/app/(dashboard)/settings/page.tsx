@@ -239,13 +239,18 @@ export default function SettingsPage() {
     }
   };
 
-  const totalMonthlyOverhead = overheadCosts
+  const monthlyItemsTotal = overheadCosts
     .filter((c) => c.frequency === 'monthly')
     .reduce((sum, c) => sum + c.amount, 0);
 
-  const totalYearlyOverhead = overheadCosts
+  const yearlyItemsTotal = overheadCosts
     .filter((c) => c.frequency === 'yearly')
     .reduce((sum, c) => sum + c.amount, 0);
+
+  // Total yearly = yearly items + (monthly items * 12)
+  const totalYearlyOverhead = yearlyItemsTotal + (monthlyItemsTotal * 12);
+  // Total monthly = (yearly items / 12) + monthly items
+  const totalMonthlyOverhead = (yearlyItemsTotal / 12) + monthlyItemsTotal;
 
   if (loading) {
     return (
@@ -457,8 +462,8 @@ export default function SettingsPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Monthly Overhead</p>
-                      <p className="text-2xl font-bold">{formatCurrency(totalMonthlyOverhead)}</p>
+                      <p className="text-sm text-muted-foreground">Total Yearly Overhead</p>
+                      <p className="text-2xl font-bold">{formatCurrency(totalYearlyOverhead)}</p>
                     </div>
                     <div className="p-3 rounded-full bg-primary/10">
                       <DollarSign className="h-5 w-5 text-primary" />
@@ -470,8 +475,8 @@ export default function SettingsPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Yearly Fixed Costs</p>
-                      <p className="text-2xl font-bold">{formatCurrency(totalYearlyOverhead)}</p>
+                      <p className="text-sm text-muted-foreground">Total Monthly Overhead</p>
+                      <p className="text-2xl font-bold">{formatCurrency(totalMonthlyOverhead)}</p>
                     </div>
                     <div className="p-3 rounded-full bg-primary/10">
                       <DollarSign className="h-5 w-5 text-primary" />

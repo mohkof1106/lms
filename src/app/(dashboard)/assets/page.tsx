@@ -30,7 +30,17 @@ import {
 } from '@/components/ui/sheet';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
-import { Plus, Box, DollarSign, TrendingDown, Users, Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Box, DollarSign, TrendingDown, Users, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { AssetCategory, Asset, Employee } from '@/types';
 import { AssetForm, AssetFormData } from '@/components/assets';
 import { toast } from 'sonner';
@@ -59,6 +69,9 @@ export default function AssetsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [deleteAssetId, setDeleteAssetId] = useState<string | null>(null);
 
   // Fetch assets and employees from Supabase
   useEffect(() => {
@@ -68,7 +81,7 @@ export default function AssetsPage() {
 
         const [assetsRes, employeesRes] = await Promise.all([
           supabase.from('assets').select('*').order('name'),
-          supabase.from('employees').select('id, full_name').eq('active', true),
+          supabase.from('employees').select('id, full_name, job_title').eq('active', true),
         ]);
 
         if (assetsRes.error) throw assetsRes.error;
@@ -94,7 +107,7 @@ export default function AssetsPage() {
           email: '',
           phone: '',
           role: 'designer',
-          jobTitle: '',
+          jobTitle: e.job_title || '',
           department: '',
           baseSalary: 0,
           compensation: 0,
@@ -184,6 +197,76 @@ export default function AssetsPage() {
       console.error('Error adding asset:', err);
       toast.error('Failed to add asset');
     }
+  };
+
+  const handleUpdateAsset = async (data: AssetFormData) => {
+    if (!selectedAsset) return;
+
+    try {
+      const { error } = await supabase
+        .from('assets')
+        .update({
+          name: data.name,
+          category: data.category,
+          purchase_date: data.purchaseDate,
+          purchase_price: data.purchasePrice,
+          useful_life_years: data.usefulLifeYears,
+          depreciation_per_year: data.purchasePrice / data.usefulLifeYears,
+          assigned_to: data.assignedTo || null,
+          serial_number: data.serialNumber || null,
+          notes: data.notes || null,
+        })
+        .eq('id', selectedAsset.id);
+
+      if (error) throw error;
+
+      setAssets(
+        assets.map((a) =>
+          a.id === selectedAsset.id
+            ? {
+                ...a,
+                name: data.name,
+                category: data.category as AssetCategory,
+                purchaseDate: data.purchaseDate,
+                purchasePrice: data.purchasePrice,
+                usefulLifeYears: data.usefulLifeYears,
+                depreciationPerYear: data.purchasePrice / data.usefulLifeYears,
+                assignedTo: data.assignedTo || undefined,
+                serialNumber: data.serialNumber || undefined,
+                notes: data.notes || undefined,
+              }
+            : a
+        )
+      );
+      setIsEditSheetOpen(false);
+      setSelectedAsset(null);
+      toast.success('Asset updated successfully');
+    } catch (err) {
+      console.error('Error updating asset:', err);
+      toast.error('Failed to update asset');
+    }
+  };
+
+  const handleDeleteAsset = async () => {
+    if (!deleteAssetId) return;
+
+    try {
+      const { error } = await supabase.from('assets').delete().eq('id', deleteAssetId);
+
+      if (error) throw error;
+
+      setAssets(assets.filter((a) => a.id !== deleteAssetId));
+      setDeleteAssetId(null);
+      toast.success('Asset deleted successfully');
+    } catch (err) {
+      console.error('Error deleting asset:', err);
+      toast.error('Failed to delete asset');
+    }
+  };
+
+  const handleEditClick = (asset: Asset) => {
+    setSelectedAsset(asset);
+    setIsEditSheetOpen(true);
   };
 
   const getEmployeeName = (employeeId?: string) => {
@@ -321,6 +404,7 @@ export default function AssetsPage() {
                 <TableHead className="text-right">Current Value</TableHead>
                 <TableHead className="text-right">Yearly Depr.</TableHead>
                 <TableHead>Purchase Date</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -358,6 +442,25 @@ export default function AssetsPage() {
                       {formatDate(asset.purchaseDate)}
                     </span>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditClick(asset)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setDeleteAssetId(asset.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -376,12 +479,67 @@ export default function AssetsPage() {
           </SheetHeader>
           <div className="mt-6">
             <AssetForm
+              employees={employees.map((e) => ({
+                id: e.id,
+                fullName: e.fullName,
+                jobTitle: e.jobTitle,
+              }))}
               onSubmit={handleAddAsset}
               onCancel={() => setIsAddSheetOpen(false)}
             />
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Edit Asset Sheet */}
+      <Sheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Edit Asset</SheetTitle>
+            <SheetDescription>
+              Update asset information. Depreciation recalculates automatically.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-6">
+            {selectedAsset && (
+              <AssetForm
+                asset={selectedAsset}
+                employees={employees.map((e) => ({
+                  id: e.id,
+                  fullName: e.fullName,
+                  jobTitle: e.jobTitle,
+                }))}
+                onSubmit={handleUpdateAsset}
+                onCancel={() => {
+                  setIsEditSheetOpen(false);
+                  setSelectedAsset(null);
+                }}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteAssetId} onOpenChange={() => setDeleteAssetId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this asset? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAsset}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageWrapper>
   );
 }

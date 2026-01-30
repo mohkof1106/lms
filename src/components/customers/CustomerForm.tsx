@@ -32,6 +32,7 @@ const customerSchema = z.object({
   location: z.string().min(2, 'Location is required'),
   website: z.string().optional(),
   industry: z.string().optional(),
+  trn: z.string().optional(),
   notes: z.string().optional(),
   contacts: z.array(contactSchema).min(1, 'At least one contact is required'),
 });
@@ -53,6 +54,7 @@ export function CustomerForm({ customer, onSubmit, onCancel }: CustomerFormProps
           location: customer.location,
           website: customer.website || '',
           industry: customer.industry || '',
+          trn: customer.trn || '',
           notes: customer.notes || '',
           contacts: customer.contacts,
         }
@@ -61,6 +63,7 @@ export function CustomerForm({ customer, onSubmit, onCancel }: CustomerFormProps
           location: '',
           website: '',
           industry: '',
+          trn: '',
           notes: '',
           contacts: [
             {
@@ -195,6 +198,19 @@ export function CustomerForm({ customer, onSubmit, onCancel }: CustomerFormProps
                       <option key={industry} value={industry} />
                     ))}
                   </datalist>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="trn"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>TRN (Tax Registration Number)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="100123456700003" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
