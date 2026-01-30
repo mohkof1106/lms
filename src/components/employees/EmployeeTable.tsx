@@ -57,6 +57,9 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
 
           if (!error && data && data[0]) {
             const c = data[0];
+            // Calculate benefits cost client-side if not returned from DB
+            const benefitsCost = (c as any).benefits_cost ??
+              (emp.insurance / 12 + emp.ticketValue / 12 + emp.visaCost / 24 + emp.baseSalary / 12);
             costsMap[emp.id] = {
               monthlyCost: c.monthly_cost,
               fullCost: c.full_monthly_cost,
@@ -67,7 +70,7 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
               assetDepreciationYearly: c.asset_depreciation_monthly * 12,
               assetDepreciationMonthly: c.asset_depreciation_monthly,
               overheadShare: c.overhead_share || 0,
-              benefitsCost: c.benefits_cost || 0,
+              benefitsCost: benefitsCost,
             };
           }
         })

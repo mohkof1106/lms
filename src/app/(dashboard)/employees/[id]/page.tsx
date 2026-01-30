@@ -81,6 +81,9 @@ export default function EmployeeDetailPage() {
 
           if (costData && costData[0]) {
             const c = costData[0];
+            // Calculate benefits cost client-side if not returned from DB
+            const benefitsCost = (c as any).benefits_cost ??
+              (mapped.insurance / 12 + mapped.ticketValue / 12 + mapped.visaCost / 24 + mapped.baseSalary / 12);
             setCosts({
               monthlyCost: c.monthly_cost,
               fullCost: c.full_monthly_cost,
@@ -91,7 +94,7 @@ export default function EmployeeDetailPage() {
               assetDepreciationYearly: c.asset_depreciation_monthly * 12,
               assetDepreciationMonthly: c.asset_depreciation_monthly,
               overheadShare: c.overhead_share || 0,
-              benefitsCost: c.benefits_cost || 0,
+              benefitsCost: benefitsCost,
             });
           }
         }
