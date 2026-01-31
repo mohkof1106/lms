@@ -140,7 +140,7 @@ export default function EstimatorPage() {
           const { data: costData } = await supabase
             .rpc('calculate_employee_hourly_cost', { p_employee_id: emp.id });
 
-          const hourlyCost = costData?.[0]?.hourly_cost || 0;
+          const hourlyCost = Array.isArray(costData) && costData[0] ? (costData[0] as any).hourly_cost || 0 : 0;
           employeesWithCosts.push({
             id: emp.id,
             fullName: emp.full_name,
