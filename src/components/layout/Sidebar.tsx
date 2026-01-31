@@ -62,17 +62,13 @@ export function Sidebar() {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-border px-3">
-        {!collapsed && (
-          <Link href="/dashboard" className="flex items-center">
-            <img src="/logo-icon.svg" alt="LOR" className="h-11 w-auto" />
-          </Link>
-        )}
-        {collapsed && (
-          <Link href="/dashboard" className="mx-auto">
-            <img src="/logo-icon.svg" alt="LOR" className="h-10 w-auto" />
-          </Link>
-        )}
+      <div className="flex h-16 items-center border-b border-border px-4">
+        <Link href="/dashboard" className="flex flex-1 items-center justify-center">
+          <img src="/logo.svg" alt="LOR" className={cn(
+            "w-auto transition-all",
+            collapsed ? "h-10" : "h-14"
+          )} />
+        </Link>
         <Button
           variant="ghost"
           size="icon"
