@@ -1,20 +1,43 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
 import { ServiceForm } from '@/components/services';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 
 export default function NewServicePage() {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (data: any) => {
-    console.log('New service data:', data);
-    toast.success('Service created successfully!');
-    router.push('/services');
+  const handleSubmit = async (data: any) => {
+    try {
+      setIsSubmitting(true);
+
+      const { error } = await supabase.from('services').insert({
+        name: data.name,
+        description: data.description,
+        base_price: data.basePrice,
+        estimated_hours: data.estimatedHours,
+        category: data.category,
+        active: data.active,
+      });
+
+      if (error) throw error;
+
+      toast.success('Service created successfully!');
+      router.push('/services');
+      router.refresh();
+    } catch (err) {
+      console.error('Error creating service:', err);
+      toast.error('Failed to create service');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
