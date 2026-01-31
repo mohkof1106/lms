@@ -62,15 +62,15 @@ export function Sidebar() {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-border px-4">
+      <div className="flex h-16 items-center justify-between border-b border-border px-3">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center">
-            <img src="/logo.svg" alt="LOR" className="h-10 w-auto" />
+            <img src="/logo-icon.svg" alt="LOR" className="h-11 w-auto" />
           </Link>
         )}
         {collapsed && (
           <Link href="/dashboard" className="mx-auto">
-            <img src="/logo.svg" alt="LOR" className="h-8 w-auto" />
+            <img src="/logo-icon.svg" alt="LOR" className="h-10 w-auto" />
           </Link>
         )}
         <Button
