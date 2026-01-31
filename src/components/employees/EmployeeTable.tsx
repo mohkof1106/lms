@@ -55,8 +55,8 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
           const { data, error } = await supabase
             .rpc('calculate_employee_hourly_cost', { p_employee_id: emp.id });
 
-          if (!error && data && data[0]) {
-            const c = data[0];
+          if (!error && data && Array.isArray(data) && data[0]) {
+            const c = data[0] as any;
             // Calculate benefits cost client-side if not returned from DB
             const benefitsCost = (c as any).benefits_cost ??
               (emp.insurance / 12 + emp.ticketValue / 12 + emp.visaCost / 24 + emp.baseSalary / 12);
