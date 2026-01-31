@@ -25,7 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { mockCustomers } from '@/lib/mock-data/customers';
+import { supabase } from '@/lib/supabase';
+import { Customer } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
 import { generateOfferPDF } from '@/lib/utils/offer-pdf';
 import { toast } from 'sonner';
@@ -51,6 +52,7 @@ export default function NewOfferPage() {
   const router = useRouter();
 
   const [customerId, setCustomerId] = useState('');
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [title, setTitle] = useState('');
   const [validDays, setValidDays] = useState(30);
   const [vatRate, setVatRate] = useState(5);
@@ -65,6 +67,51 @@ export default function NewOfferPage() {
   const [overheadAmount, setOverheadAmount] = useState(0);
   const [profitAmount, setProfitAmount] = useState(0);
   const [suggestedPrice, setSuggestedPrice] = useState(0);
+
+  // Fetch customers from Supabase
+  useEffect(() => {
+    async function fetchCustomers() {
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+
+      if (customersError) {
+        console.error('Error fetching customers:', customersError);
+        return;
+      }
+
+      const { data: contactsData } = await supabase
+        .from('customer_contacts')
+        .select('*');
+
+      const mapped: Customer[] = (customersData || []).map((c) => ({
+        id: c.id,
+        name: c.name,
+        location: c.location || '',
+        website: c.website || undefined,
+        industry: c.industry || undefined,
+        notes: c.notes || undefined,
+        trn: c.trn || undefined,
+        createdAt: c.created_at,
+        activeProjects: 0,
+        activePackages: 0,
+        contacts: (contactsData || [])
+          .filter((contact) => contact.customer_id === c.id)
+          .map((contact) => ({
+            id: contact.id,
+            name: contact.name,
+            email: contact.email || '',
+            phone: contact.phone || '',
+            position: contact.position || undefined,
+            isPrimary: contact.is_primary,
+          })),
+      }));
+
+      setCustomers(mapped);
+    }
+    fetchCustomers();
+  }, []);
 
   // Load data from sessionStorage (passed from estimator)
   useEffect(() => {

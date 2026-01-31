@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageWrapper } from '@/components/layout';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { mockEmployees, calculateEmployeeCost } from '@/lib/mock-data/employees';
 import { mockServices } from '@/lib/mock-data/services';
-import { mockCustomers } from '@/lib/mock-data/customers';
+import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils/format';
 import {
   Calculator,
@@ -62,10 +62,16 @@ interface SelectedService {
   qty: number;
 }
 
+interface CustomerOption {
+  id: string;
+  name: string;
+}
+
 export default function EstimatorPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [customerId, setCustomerId] = useState<string>('');
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
   const [employeeHours, setEmployeeHours] = useState<EmployeeHours[]>([]);
   const [overheadPercent, setOverheadPercent] = useState(15);
@@ -80,6 +86,21 @@ export default function EstimatorPage() {
 
   const activeEmployees = mockEmployees.filter((e) => e.active);
   const activeServices = mockServices.filter((s) => s.active);
+
+  // Fetch customers from Supabase
+  useEffect(() => {
+    async function fetchCustomers() {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name')
+        .order('name');
+
+      if (!error && data) {
+        setCustomers(data);
+      }
+    }
+    fetchCustomers();
+  }, []);
 
   // Calculate service totals
   const serviceTotals = useMemo(() => {
@@ -281,7 +302,7 @@ export default function EstimatorPage() {
                     <SelectValue placeholder="Select a customer" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockCustomers.map((customer) => (
+                    {customers.map((customer) => (
                       <SelectItem key={customer.id} value={customer.id}>
                         {customer.name}
                       </SelectItem>

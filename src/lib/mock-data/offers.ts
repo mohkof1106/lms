@@ -41,6 +41,11 @@ export const mockOffers: Offer[] = [
     terms: 'Payment: 50% upon acceptance, 50% upon delivery\nDelivery: 6-8 weeks from project start\nIncludes: 3 rounds of revisions per deliverable',
     status: 'accepted',
     notes: 'Client approved via email on 2024-09-20',
+    // Internal cost data (from estimator)
+    laborCost: 12000,
+    overheadPercent: 15,
+    overheadAmount: 1800,
+    profitAmount: 9825,
   },
   {
     id: 'OFF-002',
