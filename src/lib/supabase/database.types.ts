@@ -11,49 +11,49 @@ export type Database = {
     Tables: {
       assets: {
         Row: {
-          assigned_to: string | null
-          category: Database["public"]["Enums"]["asset_category"]
-          created_at: string
-          current_value: number
-          depreciation_per_year: number
           id: string
           name: string
-          notes: string | null
+          category: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
           purchase_date: string
           purchase_price: number
-          serial_number: string | null
-          updated_at: string
           useful_life_years: number
-        }
-        Insert: {
-          assigned_to?: string | null
-          category: Database["public"]["Enums"]["asset_category"]
-          created_at?: string
           current_value: number
           depreciation_per_year: number
+          assigned_to: string | null
+          serial_number: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
           id?: string
           name: string
-          notes?: string | null
+          category: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
           purchase_date: string
           purchase_price: number
-          serial_number?: string | null
-          updated_at?: string
           useful_life_years?: number
+          current_value: number
+          depreciation_per_year: number
+          assigned_to?: string | null
+          serial_number?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          assigned_to?: string | null
-          category?: Database["public"]["Enums"]["asset_category"]
-          created_at?: string
-          current_value?: number
-          depreciation_per_year?: number
           id?: string
           name?: string
-          notes?: string | null
+          category?: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
           purchase_date?: string
           purchase_price?: number
-          serial_number?: string | null
-          updated_at?: string
           useful_life_years?: number
+          current_value?: number
+          depreciation_per_year?: number
+          assigned_to?: string | null
+          serial_number?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -62,84 +62,84 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       company_settings: {
         Row: {
-          address: string | null
-          created_at: string
-          currency: string
-          default_profit_margin: number
-          default_vat_rate: number
           id: string
-          logo_url: string | null
           name: string
+          address: string
           trn: string | null
-          updated_at: string
-          working_days_per_week: number
+          logo_url: string | null
           working_hours_per_day: number
+          working_days_per_week: number
+          default_vat_rate: number
+          default_profit_margin: number
+          currency: string
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          address?: string | null
-          created_at?: string
-          currency?: string
-          default_profit_margin?: number
-          default_vat_rate?: number
           id?: string
-          logo_url?: string | null
           name: string
+          address: string
           trn?: string | null
-          updated_at?: string
-          working_days_per_week?: number
+          logo_url?: string | null
           working_hours_per_day?: number
+          working_days_per_week?: number
+          default_vat_rate?: number
+          default_profit_margin?: number
+          currency?: string
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          address?: string | null
-          created_at?: string
-          currency?: string
-          default_profit_margin?: number
-          default_vat_rate?: number
           id?: string
-          logo_url?: string | null
           name?: string
+          address?: string
           trn?: string | null
-          updated_at?: string
-          working_days_per_week?: number
+          logo_url?: string | null
           working_hours_per_day?: number
+          working_days_per_week?: number
+          default_vat_rate?: number
+          default_profit_margin?: number
+          currency?: string
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
       customer_contacts: {
         Row: {
-          created_at: string
-          customer_id: string
-          email: string | null
           id: string
-          is_primary: boolean
+          customer_id: string
           name: string
+          email: string | null
           phone: string | null
           position: string | null
+          is_primary: boolean
+          created_at: string
         }
         Insert: {
-          created_at?: string
-          customer_id: string
-          email?: string | null
           id?: string
-          is_primary?: boolean
+          customer_id: string
           name: string
+          email?: string | null
           phone?: string | null
           position?: string | null
+          is_primary?: boolean
+          created_at?: string
         }
         Update: {
-          created_at?: string
-          customer_id?: string
-          email?: string | null
           id?: string
-          is_primary?: boolean
+          customer_id?: string
           name?: string
+          email?: string | null
           phone?: string | null
           position?: string | null
+          is_primary?: boolean
+          created_at?: string
         }
         Relationships: [
           {
@@ -148,197 +148,262 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
-          },
+          }
         ]
       }
       customers: {
         Row: {
-          created_at: string
           id: string
-          industry: string | null
-          location: string | null
           name: string
+          location: string | null
+          website: string | null
+          industry: string | null
           notes: string | null
           trn: string | null
+          created_at: string
           updated_at: string
-          website: string | null
         }
         Insert: {
-          created_at?: string
           id?: string
-          industry?: string | null
-          location?: string | null
           name: string
+          location?: string | null
+          website?: string | null
+          industry?: string | null
           notes?: string | null
           trn?: string | null
+          created_at?: string
           updated_at?: string
-          website?: string | null
         }
         Update: {
-          created_at?: string
           id?: string
-          industry?: string | null
-          location?: string | null
           name?: string
+          location?: string | null
+          website?: string | null
+          industry?: string | null
           notes?: string | null
           trn?: string | null
+          created_at?: string
           updated_at?: string
-          website?: string | null
         }
         Relationships: []
       }
       employees: {
         Row: {
-          active: boolean
-          base_salary: number
-          created_at: string
-          department: string | null
-          documents: Json | null
-          email: string
-          emergency_contact: Json | null
-          end_date: string | null
-          full_name: string
           id: string
-          insurance: number
-          job_title: string | null
+          full_name: string
+          email: string
           phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          start_date: string
+          password: string | null
+          role: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
+          job_title: string | null
+          department: string | null
+          base_salary: number
+          compensation: number
+          insurance: number
           ticket_value: number
-          updated_at: string
-          vacation_days: number
           visa_cost: number
+          vacation_days: number
+          start_date: string
+          end_date: string | null
+          active: boolean
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          active?: boolean
-          base_salary?: number
-          created_at?: string
-          department?: string | null
-          documents?: Json | null
-          email: string
-          emergency_contact?: Json | null
-          end_date?: string | null
-          full_name: string
           id?: string
-          insurance?: number
-          job_title?: string | null
+          full_name: string
+          email: string
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          start_date?: string
+          password?: string | null
+          role?: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
+          job_title?: string | null
+          department?: string | null
+          base_salary?: number
+          compensation?: number
+          insurance?: number
           ticket_value?: number
-          updated_at?: string
-          vacation_days?: number
           visa_cost?: number
+          vacation_days?: number
+          start_date?: string
+          end_date?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          active?: boolean
-          base_salary?: number
-          created_at?: string
-          department?: string | null
-          documents?: Json | null
-          email?: string
-          emergency_contact?: Json | null
-          end_date?: string | null
-          full_name?: string
           id?: string
-          insurance?: number
-          job_title?: string | null
+          full_name?: string
+          email?: string
           phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          start_date?: string
+          password?: string | null
+          role?: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
+          job_title?: string | null
+          department?: string | null
+          base_salary?: number
+          compensation?: number
+          insurance?: number
           ticket_value?: number
-          updated_at?: string
-          vacation_days?: number
           visa_cost?: number
+          vacation_days?: number
+          start_date?: string
+          end_date?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
-      holidays: {
+      expenses: {
         Row: {
-          created_at: string
-          date: string
           id: string
-          name: string
-          year: number
+          description: string
+          amount: number
+          category: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
+          status: 'pending' | 'paid' | 'voided'
+          expense_date: string
+          payment_date: string | null
+          due_date: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          vendor_name: string | null
+          is_asset_purchase: boolean
+          asset_id: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          created_at?: string
-          date: string
           id?: string
-          name: string
-          year: number
+          description: string
+          amount: number
+          category: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
+          status?: 'pending' | 'paid' | 'voided'
+          expense_date: string
+          payment_date?: string | null
+          due_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          vendor_name?: string | null
+          is_asset_purchase?: boolean
+          asset_id?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
         }
         Update: {
+          id?: string
+          description?: string
+          amount?: number
+          category?: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
+          status?: 'pending' | 'paid' | 'voided'
+          expense_date?: string
+          payment_date?: string | null
+          due_date?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          vendor_name?: string | null
+          is_asset_purchase?: boolean
+          asset_id?: string | null
+          notes?: string | null
           created_at?: string
-          date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      holidays: {
+        Row: {
+          id: string
+          name: string
+          date: string
+          year: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          date: string
+          year: number
+          created_at?: string
+        }
+        Update: {
           id?: string
           name?: string
+          date?: string
           year?: number
+          created_at?: string
         }
         Relationships: []
       }
       overhead_costs: {
         Row: {
-          active: boolean
-          amount: number
-          created_at: string
-          frequency: string
           id: string
           name: string
+          amount: number
+          frequency: 'monthly' | 'yearly'
+          active: boolean
+          created_at: string
           updated_at: string
         }
         Insert: {
-          active?: boolean
-          amount: number
-          created_at?: string
-          frequency: string
           id?: string
           name: string
+          amount: number
+          frequency?: 'monthly' | 'yearly'
+          active?: boolean
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          active?: boolean
-          amount?: number
-          created_at?: string
-          frequency?: string
           id?: string
           name?: string
+          amount?: number
+          frequency?: 'monthly' | 'yearly'
+          active?: boolean
+          created_at?: string
           updated_at?: string
         }
         Relationships: []
       }
       services: {
         Row: {
-          active: boolean
-          base_price: number
-          category: Database["public"]["Enums"]["service_category"]
-          created_at: string
-          description: string | null
-          estimated_hours: number
           id: string
           name: string
+          description: string | null
+          base_price: number
+          estimated_hours: number
+          category: 'powerpoint' | 'video' | 'branding'
+          active: boolean
+          created_at: string
           updated_at: string
         }
         Insert: {
-          active?: boolean
-          base_price?: number
-          category: Database["public"]["Enums"]["service_category"]
-          created_at?: string
-          description?: string | null
-          estimated_hours?: number
           id?: string
           name: string
+          description?: string | null
+          base_price?: number
+          estimated_hours?: number
+          category?: 'powerpoint' | 'video' | 'branding'
+          active?: boolean
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          active?: boolean
-          base_price?: number
-          category?: Database["public"]["Enums"]["service_category"]
-          created_at?: string
-          description?: string | null
-          estimated_hours?: number
           id?: string
           name?: string
+          description?: string | null
+          base_price?: number
+          estimated_hours?: number
+          category?: 'powerpoint' | 'video' | 'branding'
+          active?: boolean
+          created_at?: string
           updated_at?: string
         }
         Relationships: []
@@ -349,31 +414,19 @@ export type Database = {
     }
     Functions: {
       calculate_employee_hourly_cost: {
-        Args: { p_employee_id: string }
-        Returns: {
-          asset_depreciation_monthly: number
-          daily_cost: number
-          full_monthly_cost: number
-          hourly_cost: number
-          monthly_cost: number
-          overhead_share: number
-          working_days_per_year: number
-          yearly_cost: number
-        }[]
+        Args: {
+          p_employee_id: string
+        }
+        Returns: Json
       }
-      get_active_employee_count: { Args: Record<string, never>; Returns: number }
-      get_employee_asset_depreciation: {
-        Args: { p_employee_id: string }
-        Returns: number
-      }
-      get_holiday_count: { Args: { p_year?: number }; Returns: number }
-      get_total_asset_value: { Args: Record<string, never>; Returns: number }
-      get_total_monthly_overhead: { Args: Record<string, never>; Returns: number }
     }
     Enums: {
-      asset_category: "equipment" | "software" | "furniture" | "vehicle" | "other"
-      service_category: "powerpoint" | "video" | "branding"
-      user_role: "admin" | "sr_manager" | "manager" | "designer" | "hr" | "pm"
+      asset_category: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
+      expense_category: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
+      expense_status: 'pending' | 'paid' | 'voided'
+      overhead_frequency: 'monthly' | 'yearly'
+      service_category: 'powerpoint' | 'video' | 'branding'
+      user_role: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -381,7 +434,97 @@ export type Database = {
   }
 }
 
-// Helper types for easier usage
-export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
-export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
-export type Functions<T extends keyof Database['public']['Functions']> = Database['public']['Functions'][T]
+type PublicSchema = Database[Extract<keyof Database, "public">]
+
+export type Tables<
+  PublicTableNameOrOptions extends
+    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+        Database[PublicTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
+        PublicSchema["Views"])
+    ? (PublicSchema["Tables"] &
+        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  PublicTableNameOrOptions extends
+    | keyof PublicSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  PublicTableNameOrOptions extends
+    | keyof PublicSchema["Tables"]
+    | { schema: keyof Database },
+  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  PublicEnumNameOrOptions extends
+    | keyof PublicSchema["Enums"]
+    | { schema: keyof Database },
+  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never
+
+export type Functions<
+  PublicFuncNameOrOptions extends
+    | keyof PublicSchema["Functions"]
+    | { schema: keyof Database },
+  FuncName extends PublicFuncNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicFuncNameOrOptions["schema"]]["Functions"]
+    : never = never,
+> = PublicFuncNameOrOptions extends { schema: keyof Database }
+  ? Database[PublicFuncNameOrOptions["schema"]]["Functions"][FuncName]
+  : PublicFuncNameOrOptions extends keyof PublicSchema["Functions"]
+    ? PublicSchema["Functions"][PublicFuncNameOrOptions]
+    : never

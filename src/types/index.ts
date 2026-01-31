@@ -309,6 +309,45 @@ export interface Asset {
   notes?: string;
 }
 
+// Expense Types
+export type ExpenseCategory =
+  | 'rent'
+  | 'utilities'
+  | 'software'
+  | 'equipment'
+  | 'marketing'
+  | 'office_supplies'
+  | 'professional_services'
+  | 'travel'
+  | 'team_activities'
+  | 'taxes_fees'
+  | 'insurance'
+  | 'maintenance'
+  | 'other';
+
+export type ExpenseStatus = 'pending' | 'paid' | 'voided';
+
+export type ExpensePaymentMethod = 'bank_transfer' | 'cash' | 'credit_card' | 'cheque';
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: ExpenseCategory;
+  status: ExpenseStatus;
+  expenseDate: string;
+  paymentDate?: string;
+  dueDate?: string;
+  paymentMethod?: ExpensePaymentMethod;
+  paymentReference?: string;
+  vendorName?: string;
+  isAssetPurchase: boolean;
+  assetId?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Settings Types
 export interface CompanySettings {
   name: string;
