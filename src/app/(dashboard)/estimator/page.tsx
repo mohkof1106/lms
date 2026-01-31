@@ -36,7 +36,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { mockEmployees, calculateEmployeeCost } from '@/lib/mock-data/employees';
-import { mockServices } from '@/lib/mock-data/services';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils/format';
 import {
@@ -67,11 +66,19 @@ interface CustomerOption {
   name: string;
 }
 
+interface ServiceOption {
+  id: string;
+  name: string;
+  basePrice: number;
+  estimatedHours: number;
+}
+
 export default function EstimatorPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [customerId, setCustomerId] = useState<string>('');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [services, setServices] = useState<ServiceOption[]>([]);
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
   const [employeeHours, setEmployeeHours] = useState<EmployeeHours[]>([]);
   const [overheadPercent, setOverheadPercent] = useState(15);
@@ -85,21 +92,37 @@ export default function EstimatorPage() {
   const [qtyToAdd, setQtyToAdd] = useState<number>(1);
 
   const activeEmployees = mockEmployees.filter((e) => e.active);
-  const activeServices = mockServices.filter((s) => s.active);
 
-  // Fetch customers from Supabase
+  // Fetch customers and services from Supabase
   useEffect(() => {
-    async function fetchCustomers() {
-      const { data, error } = await supabase
+    async function fetchData() {
+      // Fetch customers
+      const { data: customersData } = await supabase
         .from('customers')
         .select('id, name')
         .order('name');
 
-      if (!error && data) {
-        setCustomers(data);
+      if (customersData) {
+        setCustomers(customersData);
+      }
+
+      // Fetch services
+      const { data: servicesData } = await supabase
+        .from('services')
+        .select('id, name, base_price, estimated_hours')
+        .eq('active', true)
+        .order('name');
+
+      if (servicesData) {
+        setServices(servicesData.map((s) => ({
+          id: s.id,
+          name: s.name,
+          basePrice: Number(s.base_price),
+          estimatedHours: s.estimated_hours,
+        })));
       }
     }
-    fetchCustomers();
+    fetchData();
   }, []);
 
   // Calculate service totals
@@ -108,7 +131,7 @@ export default function EstimatorPage() {
     let totalPrice = 0;
 
     selectedServices.forEach(({ serviceId, qty }) => {
-      const service = activeServices.find((s) => s.id === serviceId);
+      const service = services.find((s) => s.id === serviceId);
       if (service) {
         totalHours += service.estimatedHours * qty;
         totalPrice += service.basePrice * qty;
@@ -116,7 +139,7 @@ export default function EstimatorPage() {
     });
 
     return { totalHours, totalPrice };
-  }, [selectedServices, activeServices]);
+  }, [selectedServices, services]);
 
   // Handle adding a service
   const handleAddService = () => {
@@ -226,7 +249,7 @@ export default function EstimatorPage() {
     // Build line items from selected services with calculated prices
     // Distribute suggested price proportionally based on service reference cost weights
     const lineItems = selectedServices.map(({ serviceId, qty }) => {
-      const service = activeServices.find((s) => s.id === serviceId);
+      const service = services.find((s) => s.id === serviceId);
       if (!service) {
         return {
           id: `LI-${serviceId}`,
@@ -331,7 +354,7 @@ export default function EstimatorPage() {
                       <SelectValue placeholder="Select a service" />
                     </SelectTrigger>
                     <SelectContent>
-                      {activeServices.map((service) => (
+                      {services.map((service) => (
                         <SelectItem key={service.id} value={service.id}>
                           {service.name} ({service.estimatedHours}h)
                         </SelectItem>
@@ -372,7 +395,7 @@ export default function EstimatorPage() {
                     </TableHeader>
                     <TableBody>
                       {selectedServices.map(({ serviceId, qty }) => {
-                        const service = activeServices.find((s) => s.id === serviceId);
+                        const service = services.find((s) => s.id === serviceId);
                         if (!service) return null;
                         return (
                           <TableRow key={serviceId}>
