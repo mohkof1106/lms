@@ -172,7 +172,7 @@ export default function NewOfferPage() {
   const actualProfit = subtotalAfterDiscount - totalCost;
   const hasInternalData = laborCost > 0;
 
-  const selectedCustomer = mockCustomers.find((c) => c.id === customerId);
+  const selectedCustomer = customers.find((c) => c.id === customerId);
 
   const handleSubmit = () => {
     if (!customerId) {
@@ -260,7 +260,7 @@ export default function NewOfferPage() {
                       <SelectValue placeholder="Select a customer" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockCustomers.map((customer) => (
+                      {customers.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id}>
                           {customer.name}
                         </SelectItem>
