@@ -14,6 +14,7 @@ import {
   Calculator,
   FileText,
   Receipt,
+  Wallet,
   PieChart,
   Box,
   FileEdit,
@@ -39,6 +40,7 @@ const navItems: NavItem[] = [
   { label: 'Estimator', href: '/estimator', icon: Calculator },
   { label: 'Offers', href: '/offers', icon: FileText },
   { label: 'Invoices', href: '/invoices', icon: Receipt },
+  { label: 'Expenses', href: '/expenses', icon: Wallet },
   { label: 'Finance', href: '/finance', icon: PieChart },
   { label: 'Projects', href: '/projects', icon: FolderKanban },
   { label: 'Tasks', href: '/tasks', icon: CheckSquare },
@@ -62,18 +64,13 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
         {!collapsed && (
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-              L
-            </div>
-            <span className="text-lg font-semibold">LOR</span>
+          <Link href="/dashboard" className="flex items-center">
+            <img src="/logo.svg" alt="LOR" className="h-10 w-auto" />
           </Link>
         )}
         {collapsed && (
           <Link href="/dashboard" className="mx-auto">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-              L
-            </div>
+            <img src="/logo.svg" alt="LOR" className="h-8 w-auto" />
           </Link>
         )}
         <Button
