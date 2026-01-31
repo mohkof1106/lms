@@ -35,7 +35,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { mockEmployees, calculateEmployeeCost } from '@/lib/mock-data/employees';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/utils/format';
 import {
@@ -72,12 +71,20 @@ interface ServiceOption {
   estimatedHours: number;
 }
 
+interface EmployeeWithCost {
+  id: string;
+  fullName: string;
+  jobTitle: string;
+  hourlyCost: number;
+}
+
 export default function EstimatorPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [customerId, setCustomerId] = useState<string>('');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);
+  const [employees, setEmployees] = useState<EmployeeWithCost[]>([]);
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>([]);
   const [employeeHours, setEmployeeHours] = useState<EmployeeHours[]>([]);
   const [overheadPercent, setOverheadPercent] = useState(15);
@@ -90,9 +97,7 @@ export default function EstimatorPage() {
   const [serviceToAdd, setServiceToAdd] = useState<string>('');
   const [qtyToAdd, setQtyToAdd] = useState<number>(1);
 
-  const activeEmployees = mockEmployees.filter((e) => e.active);
-
-  // Fetch customers and services from Supabase
+  // Fetch customers, services, and employees from Supabase
   useEffect(() => {
     async function fetchData() {
       // Fetch customers
@@ -119,6 +124,31 @@ export default function EstimatorPage() {
           basePrice: Number(s.base_price),
           estimatedHours: s.estimated_hours,
         })));
+      }
+
+      // Fetch active employees with their hourly costs
+      const { data: employeesData } = await supabase
+        .from('employees')
+        .select('id, full_name, job_title')
+        .eq('active', true)
+        .order('full_name');
+
+      if (employeesData) {
+        // Get hourly costs for each employee
+        const employeesWithCosts: EmployeeWithCost[] = [];
+        for (const emp of employeesData) {
+          const { data: costData } = await supabase
+            .rpc('calculate_employee_hourly_cost', { p_employee_id: emp.id });
+
+          const hourlyCost = costData?.[0]?.hourly_cost || 0;
+          employeesWithCosts.push({
+            id: emp.id,
+            fullName: emp.full_name,
+            jobTitle: emp.job_title || '',
+            hourlyCost: hourlyCost,
+          });
+        }
+        setEmployees(employeesWithCosts);
       }
     }
     fetchData();
@@ -203,16 +233,15 @@ export default function EstimatorPage() {
     }[] = [];
 
     employeeHours.forEach(({ employeeId, hours }) => {
-      const employee = activeEmployees.find((e) => e.id === employeeId);
+      const employee = employees.find((e) => e.id === employeeId);
       if (employee && hours > 0) {
-        const costs = calculateEmployeeCost(employee);
-        const cost = costs.hourlyCost * hours;
+        const cost = employee.hourlyCost * hours;
         totalCost += cost;
         breakdown.push({
           employeeId,
           employeeName: employee.fullName,
           hours,
-          hourlyCost: costs.hourlyCost,
+          hourlyCost: employee.hourlyCost,
           totalCost: cost,
         });
       }
@@ -233,7 +262,7 @@ export default function EstimatorPage() {
       suggestedPrice,
       totalHours,
     };
-  }, [employeeHours, overheadPercent, profitMargin, activeEmployees]);
+  }, [employeeHours, overheadPercent, profitMargin, employees]);
 
   // Validation: team hours must be >= service hours
   const hoursShortfall = serviceTotals.totalHours - calculation.totalHours;
@@ -486,8 +515,7 @@ export default function EstimatorPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activeEmployees.map((employee) => {
-                  const costs = calculateEmployeeCost(employee);
+                {employees.map((employee) => {
                   const hours =
                     employeeHours.find((e) => e.employeeId === employee.id)?.hours || 0;
 
@@ -507,7 +535,7 @@ export default function EstimatorPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium">{employee.fullName}</p>
                         <p className="text-sm text-muted-foreground">
-                          {employee.jobTitle} • {formatCurrency(costs.hourlyCost)}/hr
+                          {employee.jobTitle} • {formatCurrency(employee.hourlyCost)}/hr
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -539,7 +567,7 @@ export default function EstimatorPage() {
                           <Plus className="h-4 w-4" />
                         </Button>
                         <span className="text-sm text-muted-foreground w-24 text-right">
-                          {formatCurrency(costs.hourlyCost * hours)}
+                          {formatCurrency(employee.hourlyCost * hours)}
                         </span>
                       </div>
                     </div>
