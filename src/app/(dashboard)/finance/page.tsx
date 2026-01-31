@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { PageWrapper } from '@/components/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -15,55 +15,99 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   mockMonthlyPnL,
-  mockCosts,
   mockRevenue,
-  costCategoryLabels,
 } from '@/lib/mock-data/finance';
-import { formatCurrency } from '@/lib/utils/format';
+import { formatCurrency, formatDate } from '@/lib/utils/format';
 import {
   TrendingUp,
   TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
   Wallet,
   CreditCard,
+  Loader2,
 } from 'lucide-react';
 import { AedIcon } from '@/components/ui/aed-icon';
+import { supabase } from '@/lib/supabase';
+import { Expense, ExpenseCategory, ExpenseStatus, ExpensePaymentMethod } from '@/types';
+import { expenseCategoryLabels } from '@/lib/mock-data/expenses';
 
 export default function FinancePage() {
-  // Calculate year-to-date stats
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch expenses from Supabase
+  useEffect(() => {
+    async function fetchExpenses() {
+      try {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .neq('status', 'voided')
+          .order('expense_date', { ascending: false });
+
+        if (error) throw error;
+
+        const mapped: Expense[] = (data || []).map((e) => ({
+          id: e.id,
+          description: e.description,
+          amount: Number(e.amount),
+          category: e.category as ExpenseCategory,
+          status: e.status as ExpenseStatus,
+          expenseDate: e.expense_date,
+          paymentDate: e.payment_date || undefined,
+          dueDate: e.due_date || undefined,
+          paymentMethod: (e.payment_method as ExpensePaymentMethod) || undefined,
+          paymentReference: e.payment_reference || undefined,
+          vendorName: e.vendor_name || undefined,
+          isAssetPurchase: e.is_asset_purchase,
+          assetId: e.asset_id || undefined,
+          notes: e.notes || undefined,
+          createdAt: e.created_at,
+          updatedAt: e.updated_at,
+        }));
+
+        setExpenses(mapped);
+      } catch (err) {
+        console.error('Error fetching expenses:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchExpenses();
+  }, []);
+
+  // Calculate YTD costs from real expenses
+  const ytdCosts = useMemo(() => {
+    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
+    return expenses
+      .filter((e) => new Date(e.expenseDate) >= startOfYear)
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [expenses]);
+
+  // Calculate year-to-date stats (revenue still from mock for now)
   const ytdStats = useMemo(() => {
     const totalRevenue = mockMonthlyPnL.reduce((sum, m) => sum + m.revenue, 0);
-    const totalCosts = mockMonthlyPnL.reduce((sum, m) => sum + m.costs, 0);
+    const totalCosts = ytdCosts; // Use real expenses
     const totalProfit = totalRevenue - totalCosts;
     const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return { totalRevenue, totalCosts, totalProfit, avgMargin };
-  }, []);
+  }, [ytdCosts]);
 
-  // Get current month data
-  const currentMonth = mockMonthlyPnL[mockMonthlyPnL.length - 1];
-  const previousMonth = mockMonthlyPnL[mockMonthlyPnL.length - 2];
-
-  const revenueChange = previousMonth
-    ? ((currentMonth.revenue - previousMonth.revenue) / previousMonth.revenue) * 100
-    : 0;
-
-  // Group costs by category
+  // Group costs by category from real expenses
   const costsByCategory = useMemo(() => {
     const grouped: Record<string, number> = {};
-    mockCosts.forEach((cost) => {
-      const amount = cost.actualAmount || cost.expectedAmount;
-      grouped[cost.category] = (grouped[cost.category] || 0) + amount;
+    expenses.forEach((expense) => {
+      grouped[expense.category] = (grouped[expense.category] || 0) + expense.amount;
     });
     return Object.entries(grouped)
       .map(([category, amount]) => ({
         category,
-        label: costCategoryLabels[category as keyof typeof costCategoryLabels] || category,
+        label: expenseCategoryLabels[category as ExpenseCategory] || category,
         amount,
       }))
       .sort((a, b) => b.amount - a.amount);
-  }, []);
+  }, [expenses]);
 
   return (
     <PageWrapper
@@ -232,17 +276,25 @@ export default function FinancePage() {
                 <CardTitle className="text-lg">Costs by Category</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {costsByCategory.map((item) => (
-                    <div key={item.category} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full bg-primary" />
-                        <span>{item.label}</span>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : costsByCategory.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No expenses recorded yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {costsByCategory.map((item) => (
+                      <div key={item.category} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full bg-primary" />
+                          <span>{item.label}</span>
+                        </div>
+                        <span className="font-medium">{formatCurrency(item.amount)}</span>
                       </div>
-                      <span className="font-medium">{formatCurrency(item.amount)}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -252,30 +304,38 @@ export default function FinancePage() {
                 <CardTitle className="text-lg">Recent Costs</CardTitle>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockCosts.slice(0, 8).map((cost) => (
-                      <TableRow key={cost.id}>
-                        <TableCell className="font-medium">{cost.description}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {costCategoryLabels[cost.category as keyof typeof costCategoryLabels]}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(cost.actualAmount || cost.expectedAmount)}
-                        </TableCell>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : expenses.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No expenses recorded yet</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {expenses.slice(0, 8).map((expense) => (
+                        <TableRow key={expense.id}>
+                          <TableCell className="font-medium">{expense.description}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {expenseCategoryLabels[expense.category]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(expense.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </div>
