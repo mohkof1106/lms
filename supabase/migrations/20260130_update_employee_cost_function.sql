@@ -1,4 +1,7 @@
 -- Update employee hourly cost calculation to include compensation, overhead_share, and benefits_cost
+-- Drop existing function first since return type changed
+DROP FUNCTION IF EXISTS calculate_employee_hourly_cost(UUID);
+
 CREATE OR REPLACE FUNCTION calculate_employee_hourly_cost(p_employee_id UUID)
 RETURNS TABLE (
   monthly_cost NUMERIC,
