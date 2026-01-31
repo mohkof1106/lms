@@ -62,11 +62,11 @@ export function Sidebar() {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-border px-4">
-        <Link href="/dashboard" className="flex flex-1 items-center justify-center">
-          <img src="/logo.svg" alt="LOR" className={cn(
+      <div className="flex h-16 items-center justify-between border-b border-border px-4">
+        <Link href="/dashboard" className="flex items-center pl-2">
+          <img src="/logo-icon.svg" alt="LOR" className={cn(
             "w-auto transition-all",
-            collapsed ? "h-10" : "h-14"
+            collapsed ? "h-9" : "h-11"
           )} />
         </Link>
         <Button
