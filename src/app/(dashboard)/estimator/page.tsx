@@ -71,6 +71,7 @@ export default function EstimatorPage() {
   const [overheadPercent, setOverheadPercent] = useState(15);
   const [profitMargin, setProfitMargin] = useState(30);
   const [discount, setDiscount] = useState(0);
+  const [vatRate, setVatRate] = useState(5);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
 
   // Service selection state
@@ -236,6 +237,7 @@ export default function EstimatorPage() {
       title,
       lineItems,
       discount,
+      vatRate,
       laborCost: calculation.totalCost,
       overheadPercent,
       overheadAmount: calculation.overheadAmount,
@@ -630,7 +632,7 @@ export default function EstimatorPage() {
                   </span>
                 </div>
                 <Separator />
-                {/* Discount Section */}
+                {/* Discount & VAT Section */}
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="discount">Discount (%)</Label>
@@ -644,26 +646,57 @@ export default function EstimatorPage() {
                       placeholder="0"
                     />
                   </div>
-                  {discount > 0 && (() => {
+                  {(() => {
                     const discountAmount = calculation.suggestedPrice * (discount / 100);
-                    const finalPrice = calculation.suggestedPrice - discountAmount;
+                    const priceAfterDiscount = calculation.suggestedPrice - discountAmount;
+                    const vatAmount = priceAfterDiscount * (vatRate / 100);
+                    const customerTotal = priceAfterDiscount + vatAmount;
                     const profitAfterDiscount = calculation.profitAmount - discountAmount;
                     return (
                       <>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Discount Amount</span>
-                          <span className="font-medium text-red-600">
-                            -{formatCurrency(discountAmount)}
+                        {discount > 0 && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Discount Amount</span>
+                              <span className="font-medium text-red-600">
+                                -{formatCurrency(discountAmount)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">After Discount</span>
+                              <span className="font-medium">
+                                {formatCurrency(priceAfterDiscount)}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center gap-1">
+                            <span className="text-muted-foreground">VAT (</span>
+                            <Input
+                              type="number"
+                              value={vatRate}
+                              onChange={(e) => setVatRate(parseFloat(e.target.value) || 0)}
+                              min={0}
+                              max={100}
+                              className="w-12 h-6 text-center text-sm px-1"
+                            />
+                            <span className="text-muted-foreground">%)</span>
+                          </div>
+                          <span className="font-medium">
+                            {formatCurrency(vatAmount)}
                           </span>
                         </div>
+                        <Separator />
                         <div className="flex justify-between text-lg">
-                          <span className="font-semibold">Final Price</span>
+                          <span className="font-semibold">Customer Total</span>
                           <span className="font-bold text-primary">
-                            {formatCurrency(finalPrice)}
+                            {formatCurrency(customerTotal)}
                           </span>
                         </div>
+                        <Separator />
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Profit After Discount</span>
+                          <span className="text-muted-foreground">Your Profit</span>
                           <span
                             className={`font-medium ${
                               profitAfterDiscount >= 0

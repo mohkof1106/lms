@@ -76,6 +76,7 @@ export default function NewOfferPage() {
         if (data.title) setTitle(data.title);
         if (data.lineItems) setLineItems(data.lineItems);
         if (data.discount) setDiscount(data.discount);
+        if (data.vatRate !== undefined) setVatRate(data.vatRate);
         if (data.laborCost) setLaborCost(data.laborCost);
         if (data.overheadPercent) setOverheadPercent(data.overheadPercent);
         if (data.overheadAmount) setOverheadAmount(data.overheadAmount);
