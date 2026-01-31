@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
-import { Employee, EmployeeCostBreakdown } from '@/types';
+import { Employee, EmployeeCostBreakdown, Asset, AssetCategory } from '@/types';
 import { formatDate, roleLabels } from '@/lib/utils/format';
 import { toast } from 'sonner';
 import {
@@ -35,6 +35,7 @@ export default function EmployeeDetailPage() {
 
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [costs, setCosts] = useState<EmployeeCostBreakdown | null>(null);
+  const [assignedAssets, setAssignedAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,15 +44,18 @@ export default function EmployeeDetailPage() {
     async function fetchEmployee() {
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from('employees')
-          .select('*')
-          .eq('id', params.id as string)
-          .single();
+        const employeeId = params.id as string;
 
-        if (error) throw error;
+        // Fetch employee, costs, and assets in parallel
+        const [employeeRes, assetsRes] = await Promise.all([
+          supabase.from('employees').select('*').eq('id', employeeId).single(),
+          supabase.from('assets').select('*').eq('assigned_to', employeeId),
+        ]);
 
-        if (data) {
+        if (employeeRes.error) throw employeeRes.error;
+
+        if (employeeRes.data) {
+          const data = employeeRes.data;
           // Map snake_case to camelCase
           const mapped: Employee = {
             id: data.id,
@@ -74,6 +78,24 @@ export default function EmployeeDetailPage() {
             documents: data.documents as Employee['documents'],
           };
           setEmployee(mapped);
+
+          // Map assets
+          if (assetsRes.data) {
+            const mappedAssets: Asset[] = assetsRes.data.map((a) => ({
+              id: a.id,
+              name: a.name,
+              category: a.category as AssetCategory,
+              purchaseDate: a.purchase_date,
+              purchasePrice: Number(a.purchase_price),
+              usefulLifeYears: a.useful_life_years,
+              currentValue: Number(a.current_value),
+              depreciationPerYear: Number(a.depreciation_per_year),
+              assignedTo: a.assigned_to || undefined,
+              serialNumber: a.serial_number || undefined,
+              notes: a.notes || undefined,
+            }));
+            setAssignedAssets(mappedAssets);
+          }
 
           // Fetch costs using RPC
           const { data: costData } = await supabase
@@ -378,7 +400,7 @@ export default function EmployeeDetailPage() {
 
         {/* Right Column - Cost Breakdown */}
         <div>
-          {costs && <CostBreakdown employee={employee} costs={costs} />}
+          {costs && <CostBreakdown employee={employee} costs={costs} assets={assignedAssets} />}
         </div>
       </div>
     </PageWrapper>

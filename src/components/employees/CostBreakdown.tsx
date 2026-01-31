@@ -2,18 +2,18 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Employee, EmployeeCostBreakdown } from '@/types';
+import { Employee, EmployeeCostBreakdown, Asset } from '@/types';
 import { formatCurrency } from '@/lib/utils/format';
-import { getAssetsByAssignee } from '@/lib/mock-data/assets';
 import { Calculator, Clock, Calendar, TrendingUp, Monitor } from 'lucide-react';
 
 interface CostBreakdownProps {
   employee: Employee;
   costs: EmployeeCostBreakdown;
+  assets?: Asset[];
 }
 
-export function CostBreakdown({ employee, costs }: CostBreakdownProps) {
-  const assignedAssets = getAssetsByAssignee(employee.id);
+export function CostBreakdown({ employee, costs, assets = [] }: CostBreakdownProps) {
+  const assignedAssets = assets;
 
   return (
     <Card>
