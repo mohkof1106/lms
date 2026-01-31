@@ -57,8 +57,8 @@ export default function EmployeesPage() {
           startDate: e.start_date,
           endDate: e.end_date || undefined,
           active: e.active,
-          emergencyContact: e.emergency_contact as Employee['emergencyContact'],
-          documents: e.documents as Employee['documents'],
+          emergencyContact: (e as any).emergency_contact as Employee['emergencyContact'],
+          documents: (e as any).documents as Employee['documents'],
         }));
 
         setEmployees(mapped);
