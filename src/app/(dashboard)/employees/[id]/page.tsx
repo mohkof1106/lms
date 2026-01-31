@@ -74,8 +74,8 @@ export default function EmployeeDetailPage() {
             startDate: data.start_date,
             endDate: data.end_date || undefined,
             active: data.active,
-            emergencyContact: data.emergency_contact as Employee['emergencyContact'],
-            documents: data.documents as Employee['documents'],
+            emergencyContact: (data as any).emergency_contact as Employee['emergencyContact'],
+            documents: (data as any).documents as Employee['documents'],
           };
           setEmployee(mapped);
 
