@@ -64,6 +64,7 @@ export default function NewOfferPage() {
   const [overheadPercent, setOverheadPercent] = useState(0);
   const [overheadAmount, setOverheadAmount] = useState(0);
   const [profitAmount, setProfitAmount] = useState(0);
+  const [suggestedPrice, setSuggestedPrice] = useState(0);
 
   // Load data from sessionStorage (passed from estimator)
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function NewOfferPage() {
         if (data.overheadPercent) setOverheadPercent(data.overheadPercent);
         if (data.overheadAmount) setOverheadAmount(data.overheadAmount);
         if (data.profitAmount) setProfitAmount(data.profitAmount);
+        if (data.suggestedPrice) setSuggestedPrice(data.suggestedPrice);
         sessionStorage.removeItem('estimateToOffer');
       } catch (e) {
         console.error('Failed to parse estimate data', e);
@@ -118,7 +120,8 @@ export default function NewOfferPage() {
 
   // Internal calculations
   const totalCost = laborCost + overheadAmount;
-  const actualProfit = total - totalCost;
+  // Actual profit excludes VAT (VAT is pass-through to government)
+  const actualProfit = subtotalAfterDiscount - totalCost;
   const hasInternalData = laborCost > 0;
 
   const selectedCustomer = mockCustomers.find((c) => c.id === customerId);
@@ -414,6 +417,13 @@ export default function NewOfferPage() {
                     <span className="font-medium text-red-600">-{formatCurrency(discountAmount)}</span>
                   )}
                 </div>
+                {/* Subtotal after discount */}
+                {discount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">After Discount</span>
+                    <span className="font-medium">{formatCurrency(subtotalAfterDiscount)}</span>
+                  </div>
+                )}
                 {/* VAT */}
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
@@ -466,6 +476,12 @@ export default function NewOfferPage() {
                   <span className="text-muted-foreground">Est. Profit</span>
                   <span className="font-medium text-green-600">+{formatCurrency(profitAmount)}</span>
                 </div>
+                {suggestedPrice > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Est. Price</span>
+                    <span className="font-medium">{formatCurrency(suggestedPrice)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Actual Profit</span>

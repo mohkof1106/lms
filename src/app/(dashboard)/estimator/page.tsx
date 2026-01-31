@@ -202,15 +202,31 @@ export default function EstimatorPage() {
     }
 
     // Build line items from selected services with calculated prices
+    // Distribute suggested price proportionally based on service reference cost weights
     const lineItems = selectedServices.map(({ serviceId, qty }) => {
       const service = activeServices.find((s) => s.id === serviceId);
-      // Use suggested price distributed proportionally, or service base price
-      const unitPrice = service ? Math.round(calculation.suggestedPrice / selectedServices.length / qty) : 0;
+      if (!service) {
+        return {
+          id: `LI-${serviceId}`,
+          description: '',
+          quantity: qty,
+          unitPrice: 0,
+        };
+      }
+
+      // Calculate proportional allocation of suggested price
+      const serviceRefCost = service.basePrice * qty;
+      const proportion = serviceTotals.totalPrice > 0
+        ? serviceRefCost / serviceTotals.totalPrice
+        : 1 / selectedServices.length;
+      const allocatedPrice = calculation.suggestedPrice * proportion;
+      const unitPrice = Math.round(allocatedPrice / qty);
+
       return {
         id: `LI-${serviceId}`,
-        description: service?.name || '',
+        description: service.name,
         quantity: qty,
-        unitPrice: service?.basePrice || 0,
+        unitPrice,
       };
     });
 
@@ -224,6 +240,7 @@ export default function EstimatorPage() {
       overheadPercent,
       overheadAmount: calculation.overheadAmount,
       profitAmount: calculation.profitAmount,
+      suggestedPrice: calculation.suggestedPrice,
     }));
 
     router.push('/offers/new');
