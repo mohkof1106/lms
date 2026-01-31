@@ -29,7 +29,7 @@ Deployed on Vercel: `vercel --prod` (project: koufahis-projects/lms)
 - `src/app/(dashboard)/` — grouped route with shared layout (Sidebar + Header)
 - Root `/` redirects to `/dashboard`
 - CRUD pattern: `/module/` (list), `/module/new` (create), `/module/[id]` (detail)
-- Modules: employees, customers, services, packages, projects, tasks, offers, invoices, finance, assets, estimator, settings
+- Modules: employees, customers, services, packages, projects, tasks, offers, invoices, expenses, finance, assets, estimator, settings
 
 ### Component Organization
 
@@ -67,6 +67,11 @@ Working Days = 260 - vacation days - 13 public holidays
 
 Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds to sidebar state with CSS transitions.
 
+### Theme
+
+- **Dark mode default**: Set via `className="dark"` on html element in `layout.tsx`
+- Theme variables defined in `globals.css`
+
 ## Recent Updates (2026-01-31)
 
 - **Supabase Integration**: Auth (login/signup), employee CRUD, cost calculations via RPC
@@ -74,3 +79,7 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 - **Monthly Salary Grouping**: Base + Compensation shown as grouped total with breakdown
 - **Estimator**: Service selection, profit margin input, discount percentage, customer dropdown
 - **Offers**: Integration with estimator, PDF generation ready
+- **Expenses Module**: Full CRUD for expenses with categories, asset linking, recurring expenses
+- **Finance Integration**: Costs tab shows real expenses from Supabase
+- **LOR Logo**: Custom SVG icon in sidebar (`public/logo-icon.svg`)
+- **Dark Mode Default**: App now defaults to dark theme
