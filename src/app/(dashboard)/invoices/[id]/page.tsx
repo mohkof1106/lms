@@ -25,8 +25,8 @@ import {
   FileText,
   Building2,
   Calendar,
-  DollarSign,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 import { InvoiceStatus } from '@/types';
 
 const statusColors: Record<InvoiceStatus, string> = {
@@ -125,14 +125,14 @@ export default function InvoiceDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-muted-foreground" />
+                  <AedIcon className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Paid</p>
                     <p className="font-semibold">{formatCurrency(invoice.paidAmount)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-muted-foreground" />
+                  <AedIcon className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Balance</p>
                     <p className="font-semibold">{formatCurrency(invoice.balance)}</p>

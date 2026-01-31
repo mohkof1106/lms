@@ -17,13 +17,13 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   Pencil,
-  DollarSign,
   Calendar,
   Building2,
   Users,
   ListTodo,
   Clock,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 import { ProjectStatus } from '@/types';
 
 const statusColors: Record<ProjectStatus, string> = {
@@ -155,7 +155,7 @@ export default function ProjectDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-muted-foreground" />
+                  <AedIcon className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Budget</p>
                     <p className="font-semibold">

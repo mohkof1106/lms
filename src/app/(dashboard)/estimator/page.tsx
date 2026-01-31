@@ -41,7 +41,6 @@ import { formatCurrency } from '@/lib/utils/format';
 import {
   Calculator,
   Users,
-  DollarSign,
   TrendingUp,
   Plus,
   Minus,
@@ -50,6 +49,7 @@ import {
   Trash2,
   AlertTriangle,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 interface EmployeeHours {
   employeeId: string;
@@ -768,7 +768,7 @@ export default function EstimatorPage() {
                 disabled={calculation.totalHours === 0 || !title || !isHoursValid}
                 onClick={handleCreateOffer}
               >
-                <DollarSign className="h-4 w-4 mr-2" />
+                <AedIcon className="h-4 w-4 mr-2" />
                 Create Offer
               </Button>
               <Button variant="outline" className="w-full" disabled>

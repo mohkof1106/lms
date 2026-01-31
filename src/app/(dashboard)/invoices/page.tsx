@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { mockInvoices, invoiceStatusLabels, getOverdueInvoices } from '@/lib/mock-data/invoices';
 import { formatCurrency } from '@/lib/utils/format';
-import { Plus, DollarSign, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Plus, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function InvoicesPage() {
   const [search, setSearch] = useState('');

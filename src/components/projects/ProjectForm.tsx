@@ -27,7 +27,8 @@ import { Project, ProjectType, ProjectStatus } from '@/types';
 import { mockCustomers } from '@/lib/mock-data/customers';
 import { mockEmployees } from '@/lib/mock-data/employees';
 import { projectTypeLabels, projectStatusLabels } from '@/lib/mock-data/projects';
-import { FolderOpen, DollarSign, Users } from 'lucide-react';
+import { FolderOpen, Users } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 const projectSchema = z.object({
   name: z.string().min(2, 'Project name is required'),
@@ -237,7 +238,7 @@ export function ProjectForm({ project, onSubmit, onCancel }: ProjectFormProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <DollarSign className="h-5 w-5 text-primary" />
+              <AedIcon className="h-5 w-5 text-primary" />
               Budget
             </CardTitle>
           </CardHeader>

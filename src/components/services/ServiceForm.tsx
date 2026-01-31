@@ -26,7 +26,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Service, ServiceCategory } from '@/types';
 import { serviceCategoryLabels } from '@/lib/mock-data/services';
-import { Palette, DollarSign, Clock } from 'lucide-react';
+import { Palette, Clock } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 const serviceSchema = z.object({
   name: z.string().min(2, 'Service name is required'),
@@ -160,7 +161,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <DollarSign className="h-5 w-5 text-primary" />
+              <AedIcon className="h-5 w-5 text-primary" />
               Pricing & Estimated Time
             </CardTitle>
           </CardHeader>

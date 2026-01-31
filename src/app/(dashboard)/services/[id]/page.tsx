@@ -27,12 +27,12 @@ import {
   ArrowLeft,
   Pencil,
   Trash2,
-  DollarSign,
   Clock,
   Tag,
   FileText,
   Loader2,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 const categoryColors: Record<string, string> = {
   social: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -244,7 +244,7 @@ export default function ServiceDetailPage() {
 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-muted-foreground" />
+                    <AedIcon className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Base Price</p>
                       <p className="font-semibold">{formatCurrency(service.basePrice)}</p>

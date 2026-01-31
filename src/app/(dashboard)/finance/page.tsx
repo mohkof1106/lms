@@ -23,12 +23,12 @@ import { formatCurrency } from '@/lib/utils/format';
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
   ArrowUpRight,
   ArrowDownRight,
   Wallet,
   CreditCard,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 export default function FinancePage() {
   // Calculate year-to-date stats
@@ -80,7 +80,7 @@ export default function FinancePage() {
                 <p className="text-2xl font-bold">{formatCurrency(ytdStats.totalRevenue)}</p>
               </div>
               <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
-                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <AedIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>

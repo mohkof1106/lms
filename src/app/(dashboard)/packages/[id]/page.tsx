@@ -14,11 +14,11 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   Pencil,
-  DollarSign,
   Calendar,
   Building2,
   ListChecks,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 export default function PackageDetailPage() {
   const params = useParams();
@@ -120,7 +120,7 @@ export default function PackageDetailPage() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-muted-foreground" />
+                  <AedIcon className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Monthly Fee</p>
                     <p className="font-semibold">{formatCurrency(pkg.monthlyFee)}</p>

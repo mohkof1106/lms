@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* UAE Dirham Symbol Font */
+@font-face {
+  font-family: 'UAESymbol';
+  src: url('/fonts/uae-symbol.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.dirham-symbol {
+  font-family: 'UAESymbol', sans-serif;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

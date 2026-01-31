@@ -27,7 +27,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Employee, UserRole } from '@/types';
 import { roleLabels } from '@/lib/utils/format';
-import { User, Briefcase, DollarSign, Calendar, Phone, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { User, Briefcase, Calendar, Phone, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 // Base schema for employee fields
 const createEmployeeSchema = (isEditMode: boolean) => z.object({
@@ -370,7 +371,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <DollarSign className="h-5 w-5 text-primary" />
+              <AedIcon className="h-5 w-5 text-primary" />
               Compensation & Benefits
             </CardTitle>
           </CardHeader>

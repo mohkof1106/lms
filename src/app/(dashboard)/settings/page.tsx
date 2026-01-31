@@ -38,12 +38,12 @@ import {
   Building2,
   Settings2,
   Calendar,
-  DollarSign,
   Save,
   Plus,
   Trash2,
   Loader2,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 interface CompanySettings {
   id: string;
@@ -466,7 +466,7 @@ export default function SettingsPage() {
                       <p className="text-2xl font-bold">{formatCurrency(totalYearlyOverhead)}</p>
                     </div>
                     <div className="p-3 rounded-full bg-primary/10">
-                      <DollarSign className="h-5 w-5 text-primary" />
+                      <AedIcon className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                 </CardContent>
@@ -479,7 +479,7 @@ export default function SettingsPage() {
                       <p className="text-2xl font-bold">{formatCurrency(totalMonthlyOverhead)}</p>
                     </div>
                     <div className="p-3 rounded-full bg-primary/10">
-                      <DollarSign className="h-5 w-5 text-primary" />
+                      <AedIcon className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                 </CardContent>
@@ -491,7 +491,7 @@ export default function SettingsPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-primary" />
+                    <AedIcon className="h-5 w-5 text-primary" />
                     Overhead Costs
                   </CardTitle>
                   <CardDescription>

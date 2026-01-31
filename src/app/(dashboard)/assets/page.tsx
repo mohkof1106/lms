@@ -40,7 +40,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Box, DollarSign, TrendingDown, Users, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Box, TrendingDown, Users, Loader2, Pencil, Trash2 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 import { AssetCategory, Asset, Employee } from '@/types';
 import { AssetForm, AssetFormData } from '@/components/assets';
 import { toast } from 'sonner';
@@ -333,7 +334,7 @@ export default function AssetsPage() {
                 <p className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</p>
               </div>
               <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
-                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <AedIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>

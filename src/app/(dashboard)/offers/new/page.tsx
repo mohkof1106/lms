@@ -35,11 +35,11 @@ import {
   FileText,
   Plus,
   Trash2,
-  DollarSign,
   Building2,
   Download,
   Calculator,
 } from 'lucide-react';
+import { AedIcon } from '@/components/ui/aed-icon';
 
 interface LineItem {
   id: string;
@@ -433,7 +433,7 @@ export default function NewOfferPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
-                <DollarSign className="h-5 w-5 text-primary" />
+                <AedIcon className="h-5 w-5 text-primary" />
                 Summary
               </CardTitle>
             </CardHeader>
