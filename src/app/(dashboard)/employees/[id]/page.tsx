@@ -101,8 +101,8 @@ export default function EmployeeDetailPage() {
           const { data: costData } = await supabase
             .rpc('calculate_employee_hourly_cost', { p_employee_id: data.id });
 
-          if (costData && costData[0]) {
-            const c = costData[0];
+          if (costData && Array.isArray(costData) && costData[0]) {
+            const c = costData[0] as any;
             // Calculate benefits cost client-side if not returned from DB
             const benefitsCost = (c as any).benefits_cost ??
               (mapped.insurance / 12 + mapped.ticketValue / 12 + mapped.visaCost / 24 + mapped.baseSalary / 12);
