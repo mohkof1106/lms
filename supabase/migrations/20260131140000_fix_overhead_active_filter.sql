@@ -1,6 +1,5 @@
--- Update employee hourly cost calculation to include compensation, overhead_share, and benefits_cost
--- Drop existing function first since return type changed
-DROP FUNCTION IF EXISTS calculate_employee_hourly_cost(UUID);
+-- Fix: Add WHERE active = true to overhead_costs query in employee cost calculation
+-- This ensures only active overhead costs are included, matching the Settings page behavior
 
 CREATE OR REPLACE FUNCTION calculate_employee_hourly_cost(p_employee_id UUID)
 RETURNS TABLE (
@@ -65,7 +64,7 @@ BEGIN
   -- Monthly Cost = Base Salary + Compensation + Benefits + Asset Depreciation
   v_monthly_cost := v_base_salary + v_compensation + v_benefits_cost + v_asset_depreciation_monthly;
 
-  -- Calculate total monthly overhead from overhead_costs table
+  -- Calculate total monthly overhead from overhead_costs table (ONLY active costs)
   SELECT COALESCE(SUM(
     CASE
       WHEN frequency = 'monthly' THEN amount
