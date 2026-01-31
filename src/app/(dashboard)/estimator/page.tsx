@@ -41,7 +41,6 @@ import { formatCurrency } from '@/lib/utils/format';
 import {
   Calculator,
   Users,
-  TrendingUp,
   Plus,
   Minus,
   FileText,
@@ -550,44 +549,6 @@ export default function EstimatorPage() {
             </CardContent>
           </Card>
 
-          {/* Margins */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Margins
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Overhead (%)</Label>
-                  <span className="font-medium">{overheadPercent}%</span>
-                </div>
-                <Slider
-                  value={[overheadPercent]}
-                  onValueChange={([value]) => setOverheadPercent(value)}
-                  min={0}
-                  max={50}
-                  step={1}
-                />
-              </div>
-              <Separator />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Profit Margin (%)</Label>
-                  <span className="font-medium">{profitMargin}%</span>
-                </div>
-                <Slider
-                  value={[profitMargin]}
-                  onValueChange={([value]) => setProfitMargin(value)}
-                  min={0}
-                  max={100}
-                  step={1}
-                />
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Right Column - Results */}
