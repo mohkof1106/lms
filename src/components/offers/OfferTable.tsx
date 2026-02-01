@@ -31,11 +31,12 @@ import { Badge } from '@/components/ui/badge';
 import { Offer, OfferStatus } from '@/types';
 import { offerStatusLabels } from '@/lib/mock-data/offers';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
-import { MoreHorizontal, Eye, Pencil, FileText, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, FileText, Trash2, Copy } from 'lucide-react';
 
 interface OfferTableProps {
   offers: Offer[];
   onDelete?: (offerId: string) => void;
+  onDuplicate?: (offerId: string) => void;
 }
 
 const statusColors: Record<OfferStatus, string> = {
@@ -46,7 +47,7 @@ const statusColors: Record<OfferStatus, string> = {
   expired: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
 };
 
-export function OfferTable({ offers, onDelete }: OfferTableProps) {
+export function OfferTable({ offers, onDelete, onDuplicate }: OfferTableProps) {
   const [deleteOfferId, setDeleteOfferId] = useState<string | null>(null);
   const offerToDelete = offers.find((o) => o.id === deleteOfferId);
 
@@ -137,6 +138,10 @@ export function OfferTable({ offers, onDelete }: OfferTableProps) {
                           </Link>
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem onClick={() => onDuplicate?.(offer.id)}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Duplicate
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
                         onClick={() => setDeleteOfferId(offer.id)}

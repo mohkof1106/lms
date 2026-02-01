@@ -101,6 +101,76 @@ export default function OffersPage() {
     }
   };
 
+  const handleDuplicate = async (offerId: string) => {
+    const offer = offers.find((o) => o.id === offerId);
+    if (!offer) return;
+
+    try {
+      // Fetch line items for this offer
+      const { data: lineItemsData, error: lineItemsError } = await supabase
+        .from('offer_line_items')
+        .select('*')
+        .eq('offer_id', offerId)
+        .order('sort_order');
+
+      if (lineItemsError) throw lineItemsError;
+
+      // Calculate new valid_until (30 days from today)
+      const validUntilDate = new Date();
+      validUntilDate.setDate(validUntilDate.getDate() + 30);
+      const validUntil = validUntilDate.toISOString().split('T')[0];
+
+      // Create new offer
+      const { data: newOffer, error: offerError } = await supabase
+        .from('offers')
+        .insert({
+          customer_id: offer.customerId,
+          valid_until: validUntil,
+          subtotal: offer.subtotal,
+          discount_percent: offer.discountPercent || 0,
+          discount_amount: offer.discountAmount || 0,
+          vat_rate: offer.vatRate,
+          vat_amount: offer.vatAmount,
+          total: offer.total,
+          terms: offer.terms || null,
+          notes: offer.notes || null,
+          labor_cost: offer.laborCost || 0,
+          overhead_percent: offer.overheadPercent || 0,
+          overhead_amount: offer.overheadAmount || 0,
+          profit_amount: offer.profitAmount || 0,
+          status: 'draft',
+        })
+        .select()
+        .single();
+
+      if (offerError) throw offerError;
+
+      // Copy line items
+      if (lineItemsData && lineItemsData.length > 0) {
+        const newLineItems = lineItemsData.map((item, index) => ({
+          offer_id: newOffer.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total: item.total,
+          sort_order: index,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('offer_line_items')
+          .insert(newLineItems);
+
+        if (itemsError) throw itemsError;
+      }
+
+      toast.success('Offer duplicated!');
+      fetchOffers(); // Refresh list
+    } catch (err) {
+      console.error('Error duplicating offer:', err);
+      toast.error('Failed to duplicate offer');
+    }
+  };
+
   const filteredOffers = useMemo(() => {
     return offers.filter((offer) => {
       const searchLower = search.toLowerCase();
@@ -169,7 +239,7 @@ export default function OffersPage() {
           <p className="text-muted-foreground">No offers found matching your criteria.</p>
         </div>
       ) : (
-        <OfferTable offers={filteredOffers} onDelete={handleDelete} />
+        <OfferTable offers={filteredOffers} onDelete={handleDelete} onDuplicate={handleDuplicate} />
       )}
     </PageWrapper>
   );
