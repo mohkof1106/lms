@@ -54,10 +54,13 @@ Monthly Cost = Monthly Salary + Benefits (insurance/12 + ticket/12 + visa/24 + 1
 Full Cost = Monthly Cost + Overhead Share (company costs ÷ active employees)
 Hourly Rate = (Full Cost × 12) ÷ (Working Days × Working Hours)
 
-Working Days = 260 - vacation days - public holidays (from `holidays` table)
+Working Days = (working_days_per_week × 52) - vacation days - public holidays
 Working Hours = from `company_settings.working_hours_per_day` (default 8)
 
-**Dynamic Settings**: Holiday count and working hours are fetched from database, not hardcoded.
+**Dynamic Settings**: All cost calculation settings come from `company_settings` table:
+- `working_hours_per_day` - hours per workday (default 8)
+- `working_days_per_week` - days per week (default 5)
+- Public holidays counted from `holidays` table by current year
 
 ### Styling
 
@@ -77,6 +80,11 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 
 ## Recent Updates (2026-02-01)
 
+- **Fully Dynamic Employee Cost Calculation**: RPC `calculate_employee_hourly_cost` now reads ALL settings from DB
+  - `working_hours_per_day` from `company_settings` (no more hardcoded 8)
+  - `working_days_per_week` from `company_settings` (no more hardcoded 260 base days)
+  - Returns settings in response for frontend display
+  - CostBreakdown component displays actual configured values
 - **Outsourced Services in Estimator**: New widget for vendor/third-party costs
   - Two modes: **Markup** (profit added) vs **Pass-through** (back-to-back billing)
   - UAE VAT compliant: single VAT rate applied to everything (per FTA VATP013)
@@ -89,7 +97,6 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
   - Estimator → Offer flow via sessionStorage with outsourced costs
   - PDF generation with real data
 - **Customer Detail Page**: Now fetches real data from Supabase (was using mock data)
-- **Dynamic Employee Cost Calculation**: RPC reads from `holidays` table and `company_settings`
 
 ## Previous Updates (2026-01-31)
 
