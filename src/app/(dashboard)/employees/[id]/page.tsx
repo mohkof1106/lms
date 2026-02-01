@@ -98,8 +98,12 @@ export default function EmployeeDetailPage() {
           }
 
           // Fetch costs using RPC
-          const { data: costData } = await supabase
+          const { data: costData, error: costError } = await supabase
             .rpc('calculate_employee_hourly_cost', { p_employee_id: data.id });
+
+          if (costError) {
+            console.error('RPC error:', costError);
+          }
 
           if (costData && Array.isArray(costData) && costData[0]) {
             const c = costData[0] as any;
