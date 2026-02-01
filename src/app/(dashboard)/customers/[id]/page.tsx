@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
@@ -8,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getCustomerById } from '@/lib/mock-data/customers';
+import { supabase } from '@/lib/supabase';
+import { Customer } from '@/types';
 import { formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
 import {
@@ -16,11 +18,11 @@ import {
   Pencil,
   Globe,
   MapPin,
-  Building2,
   Calendar,
   FolderOpen,
   Package,
   FileText,
+  Loader2,
 } from 'lucide-react';
 
 export default function CustomerDetailPage() {
@@ -29,13 +31,84 @@ export default function CustomerDetailPage() {
   const searchParams = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
 
-  const customer = getCustomerById(params.id as string);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!customer) {
+  useEffect(() => {
+    async function fetchCustomer() {
+      try {
+        setLoading(true);
+        const customerId = params.id as string;
+
+        // Fetch customer
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', customerId)
+          .single();
+
+        if (customerError) throw customerError;
+
+        // Fetch contacts for this customer
+        const { data: contactsData, error: contactsError } = await supabase
+          .from('customer_contacts')
+          .select('*')
+          .eq('customer_id', customerId);
+
+        if (contactsError) throw contactsError;
+
+        // Map to Customer type
+        const mapped: Customer = {
+          id: customerData.id,
+          name: customerData.name,
+          location: customerData.location || '',
+          website: customerData.website || undefined,
+          industry: customerData.industry || undefined,
+          notes: customerData.notes || undefined,
+          trn: customerData.trn || undefined,
+          createdAt: customerData.created_at,
+          activeProjects: 0,
+          activePackages: 0,
+          contacts: (contactsData || []).map((contact) => ({
+            id: contact.id,
+            name: contact.name,
+            email: contact.email || '',
+            phone: contact.phone || '',
+            position: contact.position || undefined,
+            isPrimary: contact.is_primary,
+          })),
+        };
+
+        setCustomer(mapped);
+      } catch (err) {
+        console.error('Error fetching customer:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch customer');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCustomer();
+  }, [params.id]);
+
+  if (loading) {
+    return (
+      <PageWrapper title="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (error || !customer) {
     return (
       <PageWrapper title="Customer Not Found">
         <div className="text-center py-12">
-          <p className="text-muted-foreground">The customer you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground">
+            {error || "The customer you're looking for doesn't exist."}
+          </p>
           <Button asChild className="mt-4">
             <Link href="/customers">Back to Customers</Link>
           </Button>
@@ -53,10 +126,55 @@ export default function CustomerDetailPage() {
       .slice(0, 2);
   };
 
-  const handleSave = (data: any) => {
-    console.log('Updated customer data:', data);
-    toast.success('Customer updated successfully!');
-    router.push(`/customers/${customer.id}`);
+  const handleSave = async (data: any) => {
+    try {
+      // Update customer
+      const { error: customerError } = await supabase
+        .from('customers')
+        .update({
+          name: data.name,
+          location: data.location,
+          website: data.website || null,
+          industry: data.industry || null,
+          notes: data.notes || null,
+          trn: data.trn || null,
+        })
+        .eq('id', customer.id);
+
+      if (customerError) throw customerError;
+
+      // Delete existing contacts and insert new ones
+      const { error: deleteError } = await supabase
+        .from('customer_contacts')
+        .delete()
+        .eq('customer_id', customer.id);
+
+      if (deleteError) throw deleteError;
+
+      // Insert updated contacts
+      if (data.contacts && data.contacts.length > 0) {
+        const contactsToInsert = data.contacts.map((c: any) => ({
+          customer_id: customer.id,
+          name: c.name,
+          email: c.email || null,
+          phone: c.phone || null,
+          position: c.position || null,
+          is_primary: c.isPrimary || false,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('customer_contacts')
+          .insert(contactsToInsert);
+
+        if (insertError) throw insertError;
+      }
+
+      toast.success('Customer updated successfully!');
+      router.push(`/customers/${customer.id}`);
+    } catch (err) {
+      console.error('Error updating customer:', err);
+      toast.error('Failed to update customer');
+    }
   };
 
   const handleCancel = () => {
