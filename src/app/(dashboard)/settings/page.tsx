@@ -88,6 +88,11 @@ export default function SettingsPage() {
   const [daysPerWeek, setDaysPerWeek] = useState(5);
   const [profitMargin, setProfitMargin] = useState(30);
 
+  // Add holiday dialog state
+  const [isAddHolidayOpen, setIsAddHolidayOpen] = useState(false);
+  const [newHolidayName, setNewHolidayName] = useState('');
+  const [newHolidayDate, setNewHolidayDate] = useState('');
+
   // Add overhead cost dialog state
   const [isAddCostOpen, setIsAddCostOpen] = useState(false);
   const [newCostName, setNewCostName] = useState('');
@@ -179,6 +184,54 @@ export default function SettingsPage() {
     } catch (err) {
       console.error('Error saving:', err);
       toast.error('Failed to save settings');
+    }
+  };
+
+  const handleAddHoliday = async () => {
+    if (!newHolidayName || !newHolidayDate) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    try {
+      const year = new Date(newHolidayDate).getFullYear();
+      const { data, error } = await supabase
+        .from('holidays')
+        .insert({
+          name: newHolidayName,
+          date: newHolidayDate,
+          year: year,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setHolidays(
+        [...holidays, data].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        )
+      );
+      setIsAddHolidayOpen(false);
+      setNewHolidayName('');
+      setNewHolidayDate('');
+      toast.success('Holiday added!');
+    } catch (err) {
+      console.error('Error adding holiday:', err);
+      toast.error('Failed to add holiday');
+    }
+  };
+
+  const handleDeleteHoliday = async (holidayId: string) => {
+    try {
+      const { error } = await supabase.from('holidays').delete().eq('id', holidayId);
+
+      if (error) throw error;
+
+      setHolidays(holidays.filter((h) => h.id !== holidayId));
+      toast.success('Holiday removed');
+    } catch (err) {
+      console.error('Error deleting holiday:', err);
+      toast.error('Failed to remove holiday');
     }
   };
 
@@ -419,10 +472,48 @@ export default function SettingsPage() {
                   Holidays affect working days calculation for cost estimates
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Holiday
-              </Button>
+              <Dialog open={isAddHolidayOpen} onOpenChange={setIsAddHolidayOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Holiday
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Holiday</DialogTitle>
+                    <DialogDescription>
+                      Add a public holiday that affects working days calculations.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="holidayName">Holiday Name</Label>
+                      <Input
+                        id="holidayName"
+                        value={newHolidayName}
+                        onChange={(e) => setNewHolidayName(e.target.value)}
+                        placeholder="e.g., National Day"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="holidayDate">Date</Label>
+                      <Input
+                        id="holidayDate"
+                        type="date"
+                        value={newHolidayDate}
+                        onChange={(e) => setNewHolidayDate(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddHolidayOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddHoliday}>Add Holiday</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
               <Table>
@@ -441,7 +532,12 @@ export default function SettingsPage() {
                       <TableCell>{holiday.date}</TableCell>
                       <TableCell>{holiday.year}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => handleDeleteHoliday(holiday.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
