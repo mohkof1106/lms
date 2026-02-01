@@ -227,6 +227,8 @@ export const calculateEmployeeCost = (employee: Employee): EmployeeCostBreakdown
     assetDepreciationMonthly: Math.round(assetDepreciationMonthly * 100) / 100,
     overheadShare: Math.round(overheadSharePerEmployee * 100) / 100,
     benefitsCost: Math.round(benefitsCost * 100) / 100,
+    workingHoursPerDay: settings.workingHoursPerDay,
+    workingDaysPerWeek: settings.workingDaysPerWeek,
   };
 };
 

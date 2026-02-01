@@ -14,8 +14,9 @@ interface CostBreakdownProps {
 
 export function CostBreakdown({ employee, costs, assets = [] }: CostBreakdownProps) {
   const assignedAssets = assets;
-  // Calculate holidays from working days: 260 - vacation - holidays = workingDays
-  const holidayCount = 260 - employee.vacationDays - costs.workingDaysPerYear;
+  // Calculate base working days and holidays from settings
+  const baseWorkingDays = costs.workingDaysPerWeek * 52;
+  const holidayCount = baseWorkingDays - employee.vacationDays - costs.workingDaysPerYear;
 
   return (
     <Card>
@@ -132,19 +133,19 @@ export function CostBreakdown({ employee, costs, assets = [] }: CostBreakdownPro
           <h4 className="text-sm font-medium text-muted-foreground">Hourly Rate Calculation</h4>
           <div className="grid gap-2 text-sm">
             <div className="flex justify-between text-muted-foreground">
-              <span>Working days: 260 - {employee.vacationDays} vacation - {holidayCount} holidays</span>
+              <span>Working days: {baseWorkingDays} - {employee.vacationDays} vacation - {holidayCount} holidays</span>
               <span>{costs.workingDaysPerYear} days</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Effective hours: {costs.workingDaysPerYear} days × 8 hrs</span>
-              <span>{costs.workingDaysPerYear * 8} hrs/yr</span>
+              <span>Effective hours: {costs.workingDaysPerYear} days × {costs.workingHoursPerDay} hrs</span>
+              <span>{costs.workingDaysPerYear * costs.workingHoursPerDay} hrs/yr</span>
             </div>
             <div className="flex justify-between pt-2 border-t">
               <span>Yearly ÷ Hours = Hourly Rate</span>
               <span className="font-semibold text-primary">{formatCurrency(costs.hourlyCost)}/hr</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Hourly × 8 = Daily Rate</span>
+              <span>Hourly × {costs.workingHoursPerDay} = Daily Rate</span>
               <span>{formatCurrency(costs.dailyCost)}/day</span>
             </div>
           </div>

@@ -71,6 +71,8 @@ export function EmployeeTable({ employees, onDelete }: EmployeeTableProps) {
               assetDepreciationMonthly: c.asset_depreciation_monthly,
               overheadShare: c.overhead_share || 0,
               benefitsCost: benefitsCost,
+              workingHoursPerDay: c.working_hours_per_day || 8,
+              workingDaysPerWeek: c.working_days_per_week || 5,
             };
           }
         })
