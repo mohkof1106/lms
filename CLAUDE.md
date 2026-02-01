@@ -52,9 +52,12 @@ Deployed on Vercel: `vercel --prod` (project: koufahis-projects/lms)
 Monthly Salary = Base Salary + Compensation
 Monthly Cost = Monthly Salary + Benefits (insurance/12 + ticket/12 + visa/24 + 13th month) + Asset Depreciation
 Full Cost = Monthly Cost + Overhead Share (company costs ÷ active employees)
-Hourly Rate = (Full Cost × 12) ÷ (Working Days × 8)
+Hourly Rate = (Full Cost × 12) ÷ (Working Days × Working Hours)
 
-Working Days = 260 - vacation days - 13 public holidays
+Working Days = 260 - vacation days - public holidays (from `holidays` table)
+Working Hours = from `company_settings.working_hours_per_day` (default 8)
+
+**Dynamic Settings**: Holiday count and working hours are fetched from database, not hardcoded.
 
 ### Styling
 
@@ -72,7 +75,14 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 - **Dark mode default**: Set via `className="dark"` on html element in `layout.tsx`
 - Theme variables defined in `globals.css`
 
-## Recent Updates (2026-01-31)
+## Recent Updates (2026-02-01)
+
+- **Dynamic Employee Cost Calculation**: RPC function now reads holiday count from `holidays` table and working hours from `company_settings` instead of hardcoded values
+- **Holiday CRUD in Settings**: Full add/delete functionality for public holidays affecting cost calculations
+- **Customer Detail Page**: Now fetches real data from Supabase
+- **CostBreakdown Display**: Shows actual holiday count dynamically calculated
+
+## Previous Updates (2026-01-31)
 
 - **Supabase Integration**: Auth (login/signup), employee CRUD, cost calculations via RPC
 - **Employee Cost Breakdown**: Table shows Monthly Salary, Benefits, Overhead, Hourly, Monthly columns
