@@ -46,7 +46,9 @@ import {
   Package,
   Trash2,
   AlertTriangle,
+  ExternalLink,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { AedIcon } from '@/components/ui/aed-icon';
 
 interface EmployeeHours {
@@ -78,6 +80,14 @@ interface EmployeeWithCost {
   hourlyCost: number;
 }
 
+interface OutsourcedItem {
+  id: string;
+  description: string;
+  supplierName: string;
+  cost: number;
+  beforeProfit: boolean; // true = markup, false = pass-through
+}
+
 export default function EstimatorPage() {
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -92,6 +102,13 @@ export default function EstimatorPage() {
   const [discount, setDiscount] = useState(0);
   const [vatRate, setVatRate] = useState(5);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+
+  // Outsourced items state
+  const [outsourcedItems, setOutsourcedItems] = useState<OutsourcedItem[]>([]);
+  const [outsourcedDesc, setOutsourcedDesc] = useState('');
+  const [outsourcedSupplier, setOutsourcedSupplier] = useState('');
+  const [outsourcedCost, setOutsourcedCost] = useState<number>(0);
+  const [outsourcedBeforeProfit, setOutsourcedBeforeProfit] = useState(true);
 
   // Service selection state
   const [serviceToAdd, setServiceToAdd] = useState<string>('');
@@ -204,6 +221,30 @@ export default function EstimatorPage() {
     );
   };
 
+  // Handle adding outsourced item
+  const handleAddOutsourced = () => {
+    if (!outsourcedDesc || outsourcedCost <= 0) return;
+
+    const newItem: OutsourcedItem = {
+      id: `OUT-${Date.now()}`,
+      description: outsourcedDesc,
+      supplierName: outsourcedSupplier,
+      cost: outsourcedCost,
+      beforeProfit: outsourcedBeforeProfit,
+    };
+
+    setOutsourcedItems((prev) => [...prev, newItem]);
+    setOutsourcedDesc('');
+    setOutsourcedSupplier('');
+    setOutsourcedCost(0);
+    setOutsourcedBeforeProfit(true);
+  };
+
+  // Handle removing outsourced item
+  const handleRemoveOutsourced = (id: string) => {
+    setOutsourcedItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
   const handleHoursChange = (employeeId: string, hours: number) => {
     setEmployeeHours((prev) => {
       const existing = prev.find((e) => e.employeeId === employeeId);
@@ -222,8 +263,24 @@ export default function EstimatorPage() {
     });
   };
 
+  // Calculate outsourced totals
+  const outsourcedTotals = useMemo(() => {
+    let beforeProfitCost = 0;
+    let passThroughCost = 0;
+
+    outsourcedItems.forEach((item) => {
+      if (item.beforeProfit) {
+        beforeProfitCost += item.cost;
+      } else {
+        passThroughCost += item.cost;
+      }
+    });
+
+    return { beforeProfitCost, passThroughCost };
+  }, [outsourcedItems]);
+
   const calculation = useMemo(() => {
-    let totalCost = 0;
+    let laborCost = 0;
     const breakdown: {
       employeeId: string;
       employeeName: string;
@@ -236,7 +293,7 @@ export default function EstimatorPage() {
       const employee = employees.find((e) => e.id === employeeId);
       if (employee && hours > 0) {
         const cost = employee.hourlyCost * hours;
-        totalCost += cost;
+        laborCost += cost;
         breakdown.push({
           employeeId,
           employeeName: employee.fullName,
@@ -247,22 +304,24 @@ export default function EstimatorPage() {
       }
     });
 
-    const overheadAmount = totalCost * (overheadPercent / 100);
-    const costWithOverhead = totalCost + overheadAmount;
-    const profitAmount = costWithOverhead * (profitMargin / 100);
-    const suggestedPrice = costWithOverhead + profitAmount;
+    // Overhead only on labor, not outsourced
+    const overheadAmount = laborCost * (overheadPercent / 100);
+    // Total cost = labor + overhead + outsourced (before profit)
+    const totalCost = laborCost + overheadAmount + outsourcedTotals.beforeProfitCost;
+    const profitAmount = totalCost * (profitMargin / 100);
+    const suggestedPrice = totalCost + profitAmount;
     const totalHours = employeeHours.reduce((sum, e) => sum + e.hours, 0);
 
     return {
       breakdown,
+      laborCost,
       totalCost,
       overheadAmount,
-      costWithOverhead,
       profitAmount,
       suggestedPrice,
       totalHours,
     };
-  }, [employeeHours, overheadPercent, profitMargin, employees]);
+  }, [employeeHours, overheadPercent, profitMargin, employees, outsourcedTotals.beforeProfitCost]);
 
   // Validation: team hours must be >= service hours
   const hoursShortfall = serviceTotals.totalHours - calculation.totalHours;
@@ -276,7 +335,7 @@ export default function EstimatorPage() {
 
     // Build line items from selected services with calculated prices
     // Distribute suggested price proportionally based on service reference cost weights
-    const lineItems = selectedServices.map(({ serviceId, qty }) => {
+    const serviceLineItems = selectedServices.map(({ serviceId, qty }) => {
       const service = services.find((s) => s.id === serviceId);
       if (!service) {
         return {
@@ -303,6 +362,39 @@ export default function EstimatorPage() {
       };
     });
 
+    // Build line items from outsourced items
+    const outsourcedLineItems = outsourcedItems.map((item) => {
+      // Markup items: cost + profit margin
+      // Pass-through items: just cost (single VAT applies to everything)
+      let unitPrice: number;
+      if (item.beforeProfit) {
+        // Apply profit margin on markup items
+        unitPrice = Math.round(item.cost * (1 + profitMargin / 100));
+      } else {
+        // Pass-through: just the cost (VAT applied once on entire invoice)
+        unitPrice = Math.round(item.cost);
+      }
+
+      return {
+        id: item.id,
+        description: item.supplierName
+          ? `${item.description} (${item.supplierName})`
+          : item.description,
+        quantity: 1,
+        unitPrice,
+        isPassThrough: !item.beforeProfit,
+      };
+    });
+
+    const lineItems = [...serviceLineItems, ...outsourcedLineItems];
+
+    // Calculate final values to pass (same logic as display)
+    const subtotal = calculation.suggestedPrice + outsourcedTotals.passThroughCost;
+    const discountAmount = subtotal * (discount / 100);
+    const afterDiscount = subtotal - discountAmount;
+    const vatAmount = afterDiscount * (vatRate / 100);
+    const customerTotal = afterDiscount + vatAmount;
+
     // Pass data to offers/new via sessionStorage
     sessionStorage.setItem('estimateToOffer', JSON.stringify({
       customerId,
@@ -310,11 +402,18 @@ export default function EstimatorPage() {
       lineItems,
       discount,
       vatRate,
-      laborCost: calculation.totalCost,
+      laborCost: calculation.laborCost,
       overheadPercent,
       overheadAmount: calculation.overheadAmount,
       profitAmount: calculation.profitAmount,
       suggestedPrice: calculation.suggestedPrice,
+      outsourcedMarkupCost: outsourcedTotals.beforeProfitCost,
+      outsourcedPassThroughCost: outsourcedTotals.passThroughCost,
+      // Pre-calculated totals for offers page
+      subtotal,
+      discountAmount,
+      vatAmount,
+      customerTotal,
     }));
 
     router.push('/offers/new');
@@ -361,6 +460,121 @@ export default function EstimatorPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Outsourced Services */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ExternalLink className="h-5 w-5 text-primary" />
+                Outsourced Services
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Add Outsourced Row */}
+              <div className="grid gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="outsourced-desc">Description</Label>
+                    <Input
+                      id="outsourced-desc"
+                      value={outsourcedDesc}
+                      onChange={(e) => setOutsourcedDesc(e.target.value)}
+                      placeholder="Photography, Voice Over..."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="outsourced-supplier">Supplier (optional)</Label>
+                    <Input
+                      id="outsourced-supplier"
+                      value={outsourcedSupplier}
+                      onChange={(e) => setOutsourcedSupplier(e.target.value)}
+                      placeholder="Vendor name"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 items-end">
+                  <div className="w-32">
+                    <Label htmlFor="outsourced-cost">Cost (AED)</Label>
+                    <Input
+                      id="outsourced-cost"
+                      type="number"
+                      min={0}
+                      value={outsourcedCost || ''}
+                      onChange={(e) => setOutsourcedCost(parseFloat(e.target.value) || 0)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pb-2">
+                    <Switch
+                      id="outsourced-mode"
+                      checked={outsourcedBeforeProfit}
+                      onCheckedChange={setOutsourcedBeforeProfit}
+                    />
+                    <Label htmlFor="outsourced-mode" className="text-sm whitespace-nowrap">
+                      {outsourcedBeforeProfit ? 'Markup' : 'Pass-through'}
+                    </Label>
+                  </div>
+                  <Button onClick={handleAddOutsourced} disabled={!outsourcedDesc || outsourcedCost <= 0}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              </div>
+
+              {/* Outsourced Items Table */}
+              {outsourcedItems.length > 0 ? (
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Supplier</TableHead>
+                        <TableHead className="w-24 text-right">Cost</TableHead>
+                        <TableHead className="w-28 text-center">Mode</TableHead>
+                        <TableHead className="w-10"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {outsourcedItems.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.description}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {item.supplierName || '-'}
+                          </TableCell>
+                          <TableCell className="text-right">{formatCurrency(item.cost)}</TableCell>
+                          <TableCell className="text-center">
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full ${
+                                item.beforeProfit
+                                  ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                              }`}
+                            >
+                              {item.beforeProfit ? 'Markup' : 'Pass-through'}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleRemoveOutsourced(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed text-sm">
+                  Add vendor/outsourced costs here. Use "Markup" to add profit, or "Pass-through" for back-to-back billing.
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -629,16 +843,22 @@ export default function EstimatorPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Labor Cost</span>
-                  <span className="font-medium">{formatCurrency(calculation.totalCost)}</span>
+                  <span className="font-medium">{formatCurrency(calculation.laborCost)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Overhead ({overheadPercent}%)</span>
                   <span className="font-medium">{formatCurrency(calculation.overheadAmount)}</span>
                 </div>
+                {outsourcedTotals.beforeProfitCost > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Outsourced (Markup)</span>
+                    <span className="font-medium">{formatCurrency(outsourcedTotals.beforeProfitCost)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Cost</span>
-                  <span className="font-medium">{formatCurrency(calculation.costWithOverhead)}</span>
+                  <span className="font-medium">{formatCurrency(calculation.totalCost)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1">
@@ -680,13 +900,32 @@ export default function EstimatorPage() {
                     />
                   </div>
                   {(() => {
-                    const discountAmount = calculation.suggestedPrice * (discount / 100);
-                    const priceAfterDiscount = calculation.suggestedPrice - discountAmount;
-                    const vatAmount = priceAfterDiscount * (vatRate / 100);
-                    const customerTotal = priceAfterDiscount + vatAmount;
+                    // Subtotal = Suggested Price + Pass-through costs (single VAT applies to everything)
+                    const subtotal = calculation.suggestedPrice + outsourcedTotals.passThroughCost;
+                    const discountAmount = subtotal * (discount / 100);
+                    const afterDiscount = subtotal - discountAmount;
+                    const vatAmount = afterDiscount * (vatRate / 100);
+                    const customerTotal = afterDiscount + vatAmount;
                     const profitAfterDiscount = calculation.profitAmount - discountAmount;
                     return (
                       <>
+                        {outsourcedTotals.passThroughCost > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Pass-through</span>
+                            <span className="font-medium text-blue-600">
+                              +{formatCurrency(outsourcedTotals.passThroughCost)}
+                            </span>
+                          </div>
+                        )}
+                        {outsourcedTotals.passThroughCost > 0 && (
+                          <>
+                            <Separator />
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Subtotal</span>
+                              <span className="font-medium">{formatCurrency(subtotal)}</span>
+                            </div>
+                          </>
+                        )}
                         {discount > 0 && (
                           <>
                             <div className="flex justify-between text-sm">
@@ -698,7 +937,7 @@ export default function EstimatorPage() {
                             <div className="flex justify-between">
                               <span className="text-muted-foreground">After Discount</span>
                               <span className="font-medium">
-                                {formatCurrency(priceAfterDiscount)}
+                                {formatCurrency(afterDiscount)}
                               </span>
                             </div>
                           </>

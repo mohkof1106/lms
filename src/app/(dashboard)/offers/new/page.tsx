@@ -69,6 +69,12 @@ export default function NewOfferPage() {
   const [profitAmount, setProfitAmount] = useState(0);
   const [suggestedPrice, setSuggestedPrice] = useState(0);
 
+  // Pre-calculated totals from estimator (to avoid rounding errors)
+  const [estimatorSubtotal, setEstimatorSubtotal] = useState<number | null>(null);
+  const [estimatorCustomerTotal, setEstimatorCustomerTotal] = useState<number | null>(null);
+  const [outsourcedMarkupCost, setOutsourcedMarkupCost] = useState(0);
+  const [outsourcedPassThroughCost, setOutsourcedPassThroughCost] = useState(0);
+
   // Fetch customers from Supabase
   useEffect(() => {
     async function fetchCustomers() {
@@ -130,6 +136,11 @@ export default function NewOfferPage() {
         if (data.overheadAmount) setOverheadAmount(data.overheadAmount);
         if (data.profitAmount) setProfitAmount(data.profitAmount);
         if (data.suggestedPrice) setSuggestedPrice(data.suggestedPrice);
+        // Pre-calculated totals from estimator
+        if (data.subtotal) setEstimatorSubtotal(data.subtotal);
+        if (data.customerTotal) setEstimatorCustomerTotal(data.customerTotal);
+        if (data.outsourcedMarkupCost) setOutsourcedMarkupCost(data.outsourcedMarkupCost);
+        if (data.outsourcedPassThroughCost) setOutsourcedPassThroughCost(data.outsourcedPassThroughCost);
         sessionStorage.removeItem('estimateToOffer');
       } catch (e) {
         console.error('Failed to parse estimate data', e);
@@ -161,16 +172,18 @@ export default function NewOfferPage() {
     );
   };
 
-  const subtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  // Use estimator's pre-calculated values if available, otherwise calculate from line items
+  const lineItemsSubtotal = lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const subtotal = estimatorSubtotal ?? lineItemsSubtotal;
   const discountAmount = subtotal * (discount / 100);
   const subtotalAfterDiscount = subtotal - discountAmount;
   const vatAmount = subtotalAfterDiscount * (vatRate / 100);
-  const total = subtotalAfterDiscount + vatAmount;
+  const total = estimatorCustomerTotal ?? (subtotalAfterDiscount + vatAmount);
 
   // Internal calculations
-  const totalCost = laborCost + overheadAmount;
+  const totalCost = laborCost + overheadAmount + outsourcedMarkupCost;
   // Actual profit excludes VAT (VAT is pass-through to government)
-  const actualProfit = subtotalAfterDiscount - totalCost;
+  const actualProfit = subtotalAfterDiscount - totalCost - outsourcedPassThroughCost;
   const hasInternalData = laborCost > 0;
 
   const selectedCustomer = customers.find((c) => c.id === customerId);
@@ -573,11 +586,23 @@ export default function NewOfferPage() {
                   <span className="text-muted-foreground">Overhead ({overheadPercent}%)</span>
                   <span className="font-medium">{formatCurrency(overheadAmount)}</span>
                 </div>
+                {outsourcedMarkupCost > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Outsourced (Markup)</span>
+                    <span className="font-medium">{formatCurrency(outsourcedMarkupCost)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Total Cost</span>
                   <span className="font-medium">{formatCurrency(totalCost)}</span>
                 </div>
+                {outsourcedPassThroughCost > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Pass-through</span>
+                    <span className="font-medium text-blue-600">{formatCurrency(outsourcedPassThroughCost)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Est. Profit</span>
                   <span className="font-medium text-green-600">+{formatCurrency(profitAmount)}</span>
