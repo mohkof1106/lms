@@ -20,7 +20,7 @@ Deployed on Vercel: `vercel --prod` (project: koufahis-projects/lms)
 ### Backend (Supabase)
 
 - **Auth**: Email/password authentication with RLS policies
-- **Database**: PostgreSQL with tables for employees, customers, services, assets, overhead_costs, etc.
+- **Database**: PostgreSQL with tables for employees, customers, services, assets, overhead_costs, offers, offer_line_items, expenses, holidays, etc.
 - **RPC Functions**: `calculate_employee_hourly_cost` returns cost breakdown with overhead share
 - **Client**: `src/lib/supabase.ts` exports configured client
 
@@ -77,10 +77,15 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 
 ## Recent Updates (2026-02-01)
 
+- **Offers Module Backend**: Full Supabase integration with `offers` and `offer_line_items` tables
+  - Auto-generated offer numbers (LOR-YYYY-NNN format via DB trigger)
+  - Status workflow: Draft → Sent → Accepted/Rejected (+ Expired display)
+  - CRUD operations: create, edit (draft only), delete, duplicate
+  - Estimator → Offer flow via sessionStorage
+  - PDF generation with real data
 - **Dynamic Employee Cost Calculation**: RPC function now reads holiday count from `holidays` table and working hours from `company_settings` instead of hardcoded values
 - **Holiday CRUD in Settings**: Full add/delete functionality for public holidays affecting cost calculations
 - **Customer Detail Page**: Now fetches real data from Supabase
-- **CostBreakdown Display**: Shows actual holiday count dynamically calculated
 
 ## Previous Updates (2026-01-31)
 
