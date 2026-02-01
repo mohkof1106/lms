@@ -342,6 +342,140 @@ export type Database = {
         }
         Relationships: []
       }
+      offers: {
+        Row: {
+          id: string
+          offer_number: string
+          customer_id: string
+          title: string | null
+          date: string
+          valid_until: string
+          subtotal: number
+          discount_percent: number
+          discount_amount: number
+          vat_rate: number
+          vat_amount: number
+          total: number
+          terms: string | null
+          notes: string | null
+          status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+          labor_cost: number
+          overhead_percent: number
+          overhead_amount: number
+          profit_amount: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          offer_number?: string
+          customer_id: string
+          title?: string | null
+          date?: string
+          valid_until: string
+          subtotal?: number
+          discount_percent?: number
+          discount_amount?: number
+          vat_rate?: number
+          vat_amount?: number
+          total?: number
+          terms?: string | null
+          notes?: string | null
+          status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+          labor_cost?: number
+          overhead_percent?: number
+          overhead_amount?: number
+          profit_amount?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          offer_number?: string
+          customer_id?: string
+          title?: string | null
+          date?: string
+          valid_until?: string
+          subtotal?: number
+          discount_percent?: number
+          discount_amount?: number
+          vat_rate?: number
+          vat_amount?: number
+          total?: number
+          terms?: string | null
+          notes?: string | null
+          status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+          labor_cost?: number
+          overhead_percent?: number
+          overhead_amount?: number
+          profit_amount?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      offer_line_items: {
+        Row: {
+          id: string
+          offer_id: string
+          service_id: string | null
+          description: string
+          quantity: number
+          unit_price: number
+          total: number
+          is_pass_through: boolean
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          offer_id: string
+          service_id?: string | null
+          description: string
+          quantity?: number
+          unit_price?: number
+          total?: number
+          is_pass_through?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          offer_id?: string
+          service_id?: string | null
+          description?: string
+          quantity?: number
+          unit_price?: number
+          total?: number
+          is_pass_through?: boolean
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_line_items_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offer_line_items_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       overhead_costs: {
         Row: {
           id: string
@@ -424,6 +558,7 @@ export type Database = {
       asset_category: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
       expense_category: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
       expense_status: 'pending' | 'paid' | 'voided'
+      offer_status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
       overhead_frequency: 'monthly' | 'yearly'
       service_category: 'powerpoint' | 'video' | 'branding'
       user_role: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'

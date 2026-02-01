@@ -1,12 +1,16 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -15,8 +19,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { getOfferById, offerStatusLabels } from '@/lib/mock-data/offers';
-import { getCustomerById } from '@/lib/mock-data/customers';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { supabase } from '@/lib/supabase';
+import { offerStatusLabels } from '@/lib/mock-data/offers';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { generateOfferPDF } from '@/lib/utils/offer-pdf';
 import { toast } from 'sonner';
@@ -31,51 +42,303 @@ import {
   Calendar,
   Download,
   Calculator,
+  Loader2,
+  Copy,
+  Plus,
+  Trash2,
+  Save,
+  X,
 } from 'lucide-react';
-import { OfferStatus } from '@/types';
+import { Offer, OfferLineItem, OfferStatus, Customer } from '@/types';
 
 const statusColors: Record<OfferStatus, string> = {
-  draft: 'bg-slate-100 text-slate-800',
-  sent: 'bg-blue-100 text-blue-800',
-  accepted: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  expired: 'bg-yellow-100 text-yellow-800',
+  draft: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300',
+  sent: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  accepted: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  expired: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
 };
+
+interface LineItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
 
 export default function OfferDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
 
-  const offer = getOfferById(params.id as string);
-  const customer = offer ? getCustomerById(offer.customerId) : undefined;
+  const [offer, setOffer] = useState<Offer | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  if (!offer) {
-    return (
-      <PageWrapper title="Offer Not Found">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">The offer you're looking for doesn't exist.</p>
-          <Button asChild className="mt-4">
-            <Link href="/offers">Back to Offers</Link>
-          </Button>
-        </div>
-      </PageWrapper>
-    );
+  // Edit mode state
+  const [editLineItems, setEditLineItems] = useState<LineItem[]>([]);
+  const [editDiscount, setEditDiscount] = useState(0);
+  const [editVatRate, setEditVatRate] = useState(5);
+  const [editTerms, setEditTerms] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+
+  const offerId = params.id as string;
+
+  useEffect(() => {
+    if (offerId) fetchOffer();
+  }, [offerId]);
+
+  useEffect(() => {
+    if (offer && isEditMode) {
+      setEditLineItems(
+        offer.lineItems.map((item) => ({
+          id: item.id,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        }))
+      );
+      setEditDiscount(offer.discountPercent || 0);
+      setEditVatRate(offer.vatRate);
+      setEditTerms(offer.terms || '');
+      setEditNotes(offer.notes || '');
+    }
+  }, [offer, isEditMode]);
+
+  async function fetchOffer() {
+    setLoading(true);
+    try {
+      const { data: offerData, error } = await supabase
+        .from('offers')
+        .select(`
+          *,
+          customers (id, name, location, trn),
+          offer_line_items (*)
+        `)
+        .eq('id', offerId)
+        .single();
+
+      if (error) throw error;
+
+      const today = new Date().toISOString().split('T')[0];
+      let displayStatus: OfferStatus = offerData.status as OfferStatus;
+      if (offerData.status === 'sent' && offerData.valid_until < today) {
+        displayStatus = 'expired';
+      }
+
+      const lineItems: OfferLineItem[] = (offerData.offer_line_items || [])
+        .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
+        .map((item: {
+          id: string;
+          service_id: string | null;
+          description: string;
+          quantity: number;
+          unit_price: number;
+          total: number;
+        }) => ({
+          id: item.id,
+          serviceId: item.service_id || undefined,
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: Number(item.unit_price),
+          total: Number(item.total),
+        }));
+
+      const mapped: Offer = {
+        id: offerData.id,
+        offerNumber: offerData.offer_number,
+        customerId: offerData.customer_id,
+        customerName: offerData.customers?.name || 'Unknown Customer',
+        date: offerData.date,
+        validUntil: offerData.valid_until,
+        lineItems,
+        subtotal: Number(offerData.subtotal),
+        discountPercent: Number(offerData.discount_percent) || undefined,
+        discountAmount: Number(offerData.discount_amount) || undefined,
+        vatRate: Number(offerData.vat_rate),
+        vatAmount: Number(offerData.vat_amount),
+        total: Number(offerData.total),
+        terms: offerData.terms || undefined,
+        status: displayStatus,
+        notes: offerData.notes || undefined,
+        laborCost: Number(offerData.labor_cost) || undefined,
+        overheadPercent: Number(offerData.overhead_percent) || undefined,
+        overheadAmount: Number(offerData.overhead_amount) || undefined,
+        profitAmount: Number(offerData.profit_amount) || undefined,
+      };
+
+      setOffer(mapped);
+
+      if (offerData.customers) {
+        setCustomer({
+          id: offerData.customers.id,
+          name: offerData.customers.name,
+          location: offerData.customers.location || '',
+          trn: offerData.customers.trn || undefined,
+          contacts: [],
+          activeProjects: 0,
+          activePackages: 0,
+          createdAt: '',
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching offer:', err);
+      toast.error('Failed to load offer');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const handleSendOffer = () => {
-    toast.success('Offer sent to client!');
+  const handleSendOffer = async () => {
+    if (!offer) return;
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: 'sent' })
+        .eq('id', offer.id);
+
+      if (error) throw error;
+
+      toast.success('Offer sent to client!');
+      setOffer({ ...offer, status: 'sent' });
+    } catch (err) {
+      console.error('Error sending offer:', err);
+      toast.error('Failed to send offer');
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  const handleMarkAccepted = () => {
-    toast.success('Offer marked as accepted!');
+  const handleMarkAccepted = async () => {
+    if (!offer) return;
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: 'accepted' })
+        .eq('id', offer.id);
+
+      if (error) throw error;
+
+      toast.success('Offer marked as accepted!');
+      setOffer({ ...offer, status: 'accepted' });
+    } catch (err) {
+      console.error('Error updating offer:', err);
+      toast.error('Failed to update offer');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleMarkRejected = async () => {
+    if (!offer) return;
+    setUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('offers')
+        .update({ status: 'rejected' })
+        .eq('id', offer.id);
+
+      if (error) throw error;
+
+      toast.success('Offer marked as rejected');
+      setOffer({ ...offer, status: 'rejected' });
+    } catch (err) {
+      console.error('Error updating offer:', err);
+      toast.error('Failed to update offer');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleCreateInvoice = () => {
-    toast.success('Invoice created!');
-    router.push('/invoices');
+    if (!offer) return;
+    // Store offer data in sessionStorage for invoice creation
+    sessionStorage.setItem(
+      'offerToInvoice',
+      JSON.stringify({
+        offerId: offer.id,
+        customerId: offer.customerId,
+        lineItems: offer.lineItems,
+        subtotal: offer.subtotal,
+        discountPercent: offer.discountPercent,
+        discountAmount: offer.discountAmount,
+        vatRate: offer.vatRate,
+        vatAmount: offer.vatAmount,
+        total: offer.total,
+      })
+    );
+    router.push('/invoices/new');
+  };
+
+  const handleDuplicateOffer = async () => {
+    if (!offer) return;
+    setUpdating(true);
+    try {
+      // Calculate new valid_until (30 days from today)
+      const validUntilDate = new Date();
+      validUntilDate.setDate(validUntilDate.getDate() + 30);
+      const validUntil = validUntilDate.toISOString().split('T')[0];
+
+      // Create new offer (offer_number auto-generated)
+      const { data: newOffer, error: offerError } = await supabase
+        .from('offers')
+        .insert({
+          customer_id: offer.customerId,
+          title: null,
+          valid_until: validUntil,
+          subtotal: offer.subtotal,
+          discount_percent: offer.discountPercent || 0,
+          discount_amount: offer.discountAmount || 0,
+          vat_rate: offer.vatRate,
+          vat_amount: offer.vatAmount,
+          total: offer.total,
+          terms: offer.terms || null,
+          notes: offer.notes || null,
+          labor_cost: offer.laborCost || 0,
+          overhead_percent: offer.overheadPercent || 0,
+          overhead_amount: offer.overheadAmount || 0,
+          profit_amount: offer.profitAmount || 0,
+          status: 'draft',
+        })
+        .select()
+        .single();
+
+      if (offerError) throw offerError;
+
+      // Copy line items
+      if (offer.lineItems.length > 0) {
+        const lineItemsToInsert = offer.lineItems.map((item, index) => ({
+          offer_id: newOffer.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total: item.total,
+          sort_order: index,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('offer_line_items')
+          .insert(lineItemsToInsert);
+
+        if (itemsError) throw itemsError;
+      }
+
+      toast.success('Offer duplicated!');
+      router.push(`/offers/${newOffer.id}`);
+    } catch (err) {
+      console.error('Error duplicating offer:', err);
+      toast.error('Failed to duplicate offer');
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const handleDownloadPDF = () => {
+    if (!offer) return;
     generateOfferPDF({
       offerNumber: offer.offerNumber,
       date: offer.date,
@@ -101,11 +364,323 @@ export default function OfferDetailPage() {
     toast.success('PDF downloaded!');
   };
 
+  // Edit mode handlers
+  const handleAddLineItem = () => {
+    setEditLineItems([
+      ...editLineItems,
+      {
+        id: `NEW-${Date.now()}`,
+        description: '',
+        quantity: 1,
+        unitPrice: 0,
+      },
+    ]);
+  };
+
+  const handleRemoveLineItem = (id: string) => {
+    setEditLineItems(editLineItems.filter((item) => item.id !== id));
+  };
+
+  const handleLineItemChange = (id: string, field: keyof LineItem, value: string | number) => {
+    setEditLineItems(
+      editLineItems.map((item) =>
+        item.id === id ? { ...item, [field]: value } : item
+      )
+    );
+  };
+
+  const editSubtotal = editLineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const editDiscountAmount = editSubtotal * (editDiscount / 100);
+  const editSubtotalAfterDiscount = editSubtotal - editDiscountAmount;
+  const editVatAmount = editSubtotalAfterDiscount * (editVatRate / 100);
+  const editTotal = editSubtotalAfterDiscount + editVatAmount;
+
+  const handleSaveEdit = async () => {
+    if (!offer) return;
+    if (editLineItems.length === 0) {
+      toast.error('Please add at least one line item');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      // Update offer
+      const { error: offerError } = await supabase
+        .from('offers')
+        .update({
+          subtotal: editSubtotal,
+          discount_percent: editDiscount,
+          discount_amount: editDiscountAmount,
+          vat_rate: editVatRate,
+          vat_amount: editVatAmount,
+          total: editTotal,
+          terms: editTerms || null,
+          notes: editNotes || null,
+        })
+        .eq('id', offer.id);
+
+      if (offerError) throw offerError;
+
+      // Delete old line items
+      const { error: deleteError } = await supabase
+        .from('offer_line_items')
+        .delete()
+        .eq('offer_id', offer.id);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new line items
+      const lineItemsToInsert = editLineItems.map((item, index) => ({
+        offer_id: offer.id,
+        description: item.description,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        total: item.quantity * item.unitPrice,
+        sort_order: index,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('offer_line_items')
+        .insert(lineItemsToInsert);
+
+      if (itemsError) throw itemsError;
+
+      toast.success('Offer updated successfully!');
+      router.push(`/offers/${offer.id}`);
+    } catch (err) {
+      console.error('Error updating offer:', err);
+      toast.error('Failed to update offer');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    router.push(`/offers/${offer?.id}`);
+  };
+
+  if (loading) {
+    return (
+      <PageWrapper title="Loading...">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  if (!offer) {
+    return (
+      <PageWrapper title="Offer Not Found">
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">The offer you're looking for doesn't exist.</p>
+          <Button asChild className="mt-4">
+            <Link href="/offers">Back to Offers</Link>
+          </Button>
+        </div>
+      </PageWrapper>
+    );
+  }
+
   // Internal cost calculations
   const hasInternalData = offer.laborCost && offer.laborCost > 0;
   const totalCost = (offer.laborCost || 0) + (offer.overheadAmount || 0);
-  const actualProfit = offer.total - totalCost;
+  const subtotalAfterDiscount = offer.subtotal - (offer.discountAmount || 0);
+  const actualProfit = subtotalAfterDiscount - totalCost;
 
+  // Edit mode view
+  if (isEditMode && offer.status === 'draft') {
+    return (
+      <PageWrapper
+        title={`Edit ${offer.offerNumber}`}
+        description={offer.customerName}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleCancelEdit}>
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={updating}>
+              {updating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Changes
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Line Items Editor */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Line Items</CardTitle>
+                <Button variant="outline" size="sm" onClick={handleAddLineItem}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Item
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {editLineItems.length > 0 ? (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50%]">Description</TableHead>
+                          <TableHead className="w-20 text-center">Qty</TableHead>
+                          <TableHead className="w-32 text-right">Unit Price</TableHead>
+                          <TableHead className="w-32 text-right">Total</TableHead>
+                          <TableHead className="w-10"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {editLineItems.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <Input
+                                value={item.description}
+                                onChange={(e) =>
+                                  handleLineItemChange(item.id, 'description', e.target.value)
+                                }
+                                placeholder="Service description"
+                                className="h-8"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleLineItemChange(item.id, 'quantity', parseInt(e.target.value) || 0)
+                                }
+                                className="w-16 text-center h-8"
+                                min={1}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Input
+                                type="number"
+                                value={item.unitPrice}
+                                onChange={(e) =>
+                                  handleLineItemChange(item.id, 'unitPrice', parseFloat(e.target.value) || 0)
+                                }
+                                className="w-28 text-right h-8"
+                                min={0}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(item.quantity * item.unitPrice)}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => handleRemoveLineItem(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground border rounded-lg border-dashed">
+                    No items. Click "Add Item" to get started.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Terms & Notes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Terms & Notes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Terms & Conditions</Label>
+                  <Textarea
+                    value={editTerms}
+                    onChange={(e) => setEditTerms(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Internal Notes</Label>
+                  <Textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    placeholder="Any internal notes..."
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Summary */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-medium">{formatCurrency(editSubtotal)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">Discount</span>
+                      <Input
+                        type="number"
+                        value={editDiscount}
+                        onChange={(e) => setEditDiscount(parseFloat(e.target.value) || 0)}
+                        className="w-16 h-6 text-center text-sm"
+                        min={0}
+                        max={100}
+                      />
+                      <span className="text-muted-foreground">%</span>
+                    </div>
+                    {editDiscount > 0 && (
+                      <span className="font-medium text-red-600">-{formatCurrency(editDiscountAmount)}</span>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">VAT</span>
+                      <Input
+                        type="number"
+                        value={editVatRate}
+                        onChange={(e) => setEditVatRate(parseFloat(e.target.value) || 0)}
+                        className="w-16 h-6 text-center text-sm"
+                        min={0}
+                        max={100}
+                      />
+                      <span className="text-muted-foreground">%</span>
+                    </div>
+                    <span className="font-medium">{formatCurrency(editVatAmount)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between text-lg">
+                    <span className="font-semibold">Total</span>
+                    <span className="font-bold text-primary">{formatCurrency(editTotal)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
+
+  // Normal view
   return (
     <PageWrapper
       title={offer.offerNumber}
@@ -126,20 +701,20 @@ export default function OfferDetailPage() {
                   Edit
                 </Link>
               </Button>
-              <Button onClick={handleSendOffer}>
-                <Send className="h-4 w-4 mr-2" />
+              <Button onClick={handleSendOffer} disabled={updating}>
+                {updating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
                 Send
               </Button>
             </>
           )}
           {offer.status === 'sent' && (
             <>
-              <Button variant="outline" onClick={() => toast.info('Marked as rejected')}>
+              <Button variant="outline" onClick={handleMarkRejected} disabled={updating}>
                 <XCircle className="h-4 w-4 mr-2" />
                 Reject
               </Button>
-              <Button onClick={handleMarkAccepted}>
-                <CheckCircle className="h-4 w-4 mr-2" />
+              <Button onClick={handleMarkAccepted} disabled={updating}>
+                {updating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                 Accept
               </Button>
             </>
@@ -369,7 +944,17 @@ export default function OfferDetailPage() {
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
-              <Button variant="outline" className="w-full justify-start" disabled>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleDuplicateOffer}
+                disabled={updating}
+              >
+                {updating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Copy className="h-4 w-4 mr-2" />
+                )}
                 Duplicate Offer
               </Button>
               <Button variant="outline" className="w-full justify-start" asChild>

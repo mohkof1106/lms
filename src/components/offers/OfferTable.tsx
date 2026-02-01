@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   Table,
@@ -16,6 +17,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Offer, OfferStatus } from '@/types';
 import { offerStatusLabels } from '@/lib/mock-data/offers';
@@ -24,6 +35,7 @@ import { MoreHorizontal, Eye, Pencil, FileText, Trash2 } from 'lucide-react';
 
 interface OfferTableProps {
   offers: Offer[];
+  onDelete?: (offerId: string) => void;
 }
 
 const statusColors: Record<OfferStatus, string> = {
@@ -34,93 +46,133 @@ const statusColors: Record<OfferStatus, string> = {
   expired: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
 };
 
-export function OfferTable({ offers }: OfferTableProps) {
+export function OfferTable({ offers, onDelete }: OfferTableProps) {
+  const [deleteOfferId, setDeleteOfferId] = useState<string | null>(null);
+  const offerToDelete = offers.find((o) => o.id === deleteOfferId);
+
+  const handleDeleteConfirm = () => {
+    if (deleteOfferId && onDelete) {
+      onDelete(deleteOfferId);
+    }
+    setDeleteOfferId(null);
+  };
+
   return (
-    <div className="rounded-lg border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Offer #</TableHead>
-            <TableHead className="w-[250px]">Customer</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Valid Until</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {offers.map((offer) => (
-            <TableRow key={offer.id}>
-              <TableCell>
-                <Link
-                  href={`/offers/${offer.id}`}
-                  className="font-medium hover:text-primary transition-colors"
-                >
-                  {offer.offerNumber}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <Link
-                  href={`/customers/${offer.customerId}`}
-                  className="text-sm hover:text-primary"
-                >
-                  {offer.customerName}
-                </Link>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm">{formatDate(offer.date)}</span>
-              </TableCell>
-              <TableCell>
-                <span className="text-sm text-muted-foreground">
-                  {formatDate(offer.validUntil)}
-                </span>
-              </TableCell>
-              <TableCell className="text-right">
-                <span className="font-medium">{formatCurrency(offer.total)}</span>
-              </TableCell>
-              <TableCell>
-                <Badge variant="secondary" className={statusColors[offer.status]}>
-                  {offerStatusLabels[offer.status]}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/offers/${offer.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href={`/offers/${offer.id}?edit=true`}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
-                      </Link>
-                    </DropdownMenuItem>
-                    {offer.status === 'accepted' && (
-                      <DropdownMenuItem>
-                        <FileText className="mr-2 h-4 w-4" />
-                        Create Invoice
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <>
+      <div className="rounded-lg border border-border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Offer #</TableHead>
+              <TableHead className="w-[250px]">Customer</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Valid Until</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {offers.map((offer) => (
+              <TableRow key={offer.id}>
+                <TableCell>
+                  <Link
+                    href={`/offers/${offer.id}`}
+                    className="font-medium hover:text-primary transition-colors"
+                  >
+                    {offer.offerNumber}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <Link
+                    href={`/customers/${offer.customerId}`}
+                    className="text-sm hover:text-primary"
+                  >
+                    {offer.customerName}
+                  </Link>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{formatDate(offer.date)}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-muted-foreground">
+                    {formatDate(offer.validUntil)}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <span className="font-medium">{formatCurrency(offer.total)}</span>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className={statusColors[offer.status]}>
+                    {offerStatusLabels[offer.status]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link href={`/offers/${offer.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </Link>
+                      </DropdownMenuItem>
+                      {offer.status === 'draft' && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/offers/${offer.id}?edit=true`}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      {offer.status === 'accepted' && (
+                        <DropdownMenuItem asChild>
+                          <Link href={`/invoices/new?offerId=${offer.id}`}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Create Invoice
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => setDeleteOfferId(offer.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <AlertDialog open={!!deleteOfferId} onOpenChange={() => setDeleteOfferId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Offer</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete offer {offerToDelete?.offerNumber}? This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
