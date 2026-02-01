@@ -14,6 +14,8 @@ interface CostBreakdownProps {
 
 export function CostBreakdown({ employee, costs, assets = [] }: CostBreakdownProps) {
   const assignedAssets = assets;
+  // Calculate holidays from working days: 260 - vacation - holidays = workingDays
+  const holidayCount = 260 - employee.vacationDays - costs.workingDaysPerYear;
 
   return (
     <Card>
@@ -130,7 +132,7 @@ export function CostBreakdown({ employee, costs, assets = [] }: CostBreakdownPro
           <h4 className="text-sm font-medium text-muted-foreground">Hourly Rate Calculation</h4>
           <div className="grid gap-2 text-sm">
             <div className="flex justify-between text-muted-foreground">
-              <span>Working days: 260 - {employee.vacationDays} vacation - 13 holidays</span>
+              <span>Working days: 260 - {employee.vacationDays} vacation - {holidayCount} holidays</span>
               <span>{costs.workingDaysPerYear} days</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
