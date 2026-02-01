@@ -77,15 +77,19 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 
 ## Recent Updates (2026-02-01)
 
+- **Outsourced Services in Estimator**: New widget for vendor/third-party costs
+  - Two modes: **Markup** (profit added) vs **Pass-through** (back-to-back billing)
+  - UAE VAT compliant: single VAT rate applied to everything (per FTA VATP013)
+  - Overhead moved below Labor Cost in calculation panel (only applies to labor)
+  - Pre-calculated totals passed to offers to avoid rounding errors
 - **Offers Module Backend**: Full Supabase integration with `offers` and `offer_line_items` tables
   - Auto-generated offer numbers (LOR-YYYY-NNN format via DB trigger)
   - Status workflow: Draft → Sent → Accepted/Rejected (+ Expired display)
   - CRUD operations: create, edit (draft only), delete, duplicate
-  - Estimator → Offer flow via sessionStorage
+  - Estimator → Offer flow via sessionStorage with outsourced costs
   - PDF generation with real data
-- **Dynamic Employee Cost Calculation**: RPC function now reads holiday count from `holidays` table and working hours from `company_settings` instead of hardcoded values
-- **Holiday CRUD in Settings**: Full add/delete functionality for public holidays affecting cost calculations
-- **Customer Detail Page**: Now fetches real data from Supabase
+- **Customer Detail Page**: Now fetches real data from Supabase (was using mock data)
+- **Dynamic Employee Cost Calculation**: RPC reads from `holidays` table and `company_settings`
 
 ## Previous Updates (2026-01-31)
 
