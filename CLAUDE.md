@@ -20,7 +20,7 @@ Deployed on Vercel: `vercel --prod` (project: koufahis-projects/lms)
 ### Backend (Supabase)
 
 - **Auth**: Email/password authentication with RLS policies
-- **Database**: PostgreSQL with tables for employees, customers, services, assets, overhead_costs, offers, offer_line_items, expenses, holidays, etc.
+- **Database**: PostgreSQL with tables for employees, customers, services, service_subtasks, assets, overhead_costs, offers, offer_line_items, expenses, holidays, etc.
 - **RPC Functions**: `calculate_employee_hourly_cost` returns cost breakdown with overhead share
 - **Client**: `src/lib/supabase.ts` exports configured client
 
@@ -80,17 +80,23 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 
 ## Recent Updates (2026-02-04)
 
+- **Service Subtasks Feature**: New `service_subtasks` table for breaking down services
+  - Each subtask has title, percentage of service time, sort order
+  - Percentages must sum to exactly 100%
+  - Subtask form with dynamic add/remove, shows calculated hours per subtask
+  - Minimum 1 subtask required per service
+- **Services basePrice Removed**: Services no longer have fixed prices
+  - Pricing calculated purely from labor cost allocation in estimator
+  - Service hours distributed proportionally to team labor cost
+- **Estimator Cost Columns**: Unit Cost and Total Cost columns in services table
+  - Costs calculated proportionally from labor cost based on service hours
+  - Formula: `unitCost = (laborCost × serviceHours / totalHours) / qty`
 - **Estimator Quick Time Buttons**: Added +D/+W/+M buttons to each employee row
   - Quickly add 1 day, 1 week, or 1 month of hours
   - Values calculated from `company_settings` (working_hours_per_day × working_days_per_week)
   - Time Reference widget shows Day/Week/Month conversions
 - **Outsourced Services Collapsible**: Section collapsed by default, click to expand
   - Shows item count when collapsed
-- **Services basePrice Removed**: Services no longer have fixed prices
-  - Pricing calculated purely from labor cost allocation
-  - Service hours distributed proportionally to team labor cost
-- **Service Subtasks**: New `service_subtasks` table for breaking down services
-  - Each subtask has title, percentage of service time, sort order
 
 ## Previous Updates (2026-02-01)
 
