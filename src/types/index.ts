@@ -75,14 +75,22 @@ export interface Customer {
 // Service Types
 export type ServiceCategory = 'powerpoint' | 'video' | 'branding';
 
+export interface ServiceSubtask {
+  id: string;
+  serviceId: string;
+  title: string;
+  percentage: number;  // % of service time (must sum to 100)
+  sortOrder: number;
+}
+
 export interface Service {
   id: string;
   name: string;
   description: string;
-  basePrice: number;
   estimatedHours: number;
   category: ServiceCategory;
   active: boolean;
+  subtasks?: ServiceSubtask[];
 }
 
 // Package Types
