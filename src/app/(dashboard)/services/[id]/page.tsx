@@ -20,19 +20,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabase';
-import { Service, ServiceCategory } from '@/types';
-import { formatCurrency } from '@/lib/utils/format';
+import { Service, ServiceCategory, ServiceSubtask } from '@/types';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
   Pencil,
   Trash2,
   Clock,
-  Tag,
   FileText,
   Loader2,
+  ListChecks,
 } from 'lucide-react';
-import { AedIcon } from '@/components/ui/aed-icon';
 
 const categoryColors: Record<string, string> = {
   social: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -70,7 +68,15 @@ export default function ServiceDetailPage() {
 
         const { data, error } = await supabase
           .from('services')
-          .select('*')
+          .select(`
+            *,
+            service_subtasks (
+              id,
+              title,
+              percentage,
+              sort_order
+            )
+          `)
           .eq('id', serviceId)
           .single();
 
@@ -81,10 +87,16 @@ export default function ServiceDetailPage() {
             id: data.id,
             name: data.name,
             description: data.description || '',
-            basePrice: Number(data.base_price),
             estimatedHours: data.estimated_hours,
             category: data.category as ServiceCategory,
             active: data.active,
+            subtasks: ((data as any).service_subtasks || []).map((st: any) => ({
+              id: st.id,
+              serviceId: data.id,
+              title: st.title,
+              percentage: Number(st.percentage),
+              sortOrder: st.sort_order,
+            })),
           });
         }
       } catch (err) {
@@ -122,19 +134,43 @@ export default function ServiceDetailPage() {
 
   const handleSave = async (data: any) => {
     try {
-      const { error } = await supabase
+      // Update the service
+      const { error: serviceError } = await supabase
         .from('services')
         .update({
           name: data.name,
           description: data.description,
-          base_price: data.basePrice,
           estimated_hours: data.estimatedHours,
           category: data.category,
           active: data.active,
         })
         .eq('id', service.id);
 
-      if (error) throw error;
+      if (serviceError) throw serviceError;
+
+      // Delete existing subtasks and insert new ones
+      const { error: deleteError } = await supabase
+        .from('service_subtasks')
+        .delete()
+        .eq('service_id', service.id);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new subtasks
+      if (data.subtasks && data.subtasks.length > 0) {
+        const subtasksToInsert = data.subtasks.map((st: any, index: number) => ({
+          service_id: service.id,
+          title: st.title,
+          percentage: st.percentage,
+          sort_order: index,
+        }));
+
+        const { error: subtasksError } = await supabase
+          .from('service_subtasks')
+          .insert(subtasksToInsert);
+
+        if (subtasksError) throw subtasksError;
+      }
 
       toast.success('Service updated successfully!');
       router.push(`/services/${service.id}`);
@@ -184,9 +220,6 @@ export default function ServiceDetailPage() {
       </PageWrapper>
     );
   }
-
-  // Calculate hourly rate
-  const hourlyRate = service.basePrice / service.estimatedHours;
 
   return (
     <PageWrapper
@@ -242,14 +275,7 @@ export default function ServiceDetailPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4">
-                  <div className="flex items-center gap-2">
-                    <AedIcon className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Base Price</p>
-                      <p className="font-semibold">{formatCurrency(service.basePrice)}</p>
-                    </div>
-                  </div>
+                <div className="grid grid-cols-2 gap-4 pt-4">
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -258,10 +284,10 @@ export default function ServiceDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-muted-foreground" />
+                    <ListChecks className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Hourly Rate</p>
-                      <p className="font-semibold">{formatCurrency(hourlyRate)}/h</p>
+                      <p className="text-sm text-muted-foreground">Subtasks</p>
+                      <p className="font-semibold">{service.subtasks?.length || 0}</p>
                     </div>
                   </div>
                 </div>
@@ -279,6 +305,43 @@ export default function ServiceDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">{service.description}</p>
+            </CardContent>
+          </Card>
+
+          {/* Subtasks */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ListChecks className="h-5 w-5 text-primary" />
+                Subtasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {service.subtasks && service.subtasks.length > 0 ? (
+                <div className="space-y-3">
+                  {service.subtasks
+                    .sort((a, b) => a.sortOrder - b.sortOrder)
+                    .map((subtask) => {
+                      const subtaskHours = ((subtask.percentage / 100) * service.estimatedHours).toFixed(1);
+                      return (
+                        <div
+                          key={subtask.id}
+                          className="flex items-center justify-between p-3 rounded-lg border"
+                        >
+                          <span className="font-medium">{subtask.title}</span>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{subtask.percentage}%</span>
+                            <span className="font-medium text-foreground">{subtaskHours}h</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-4">
+                  No subtasks defined for this service.
+                </p>
+              )}
             </CardContent>
           </Card>
 

@@ -18,16 +18,37 @@ export default function NewServicePage() {
     try {
       setIsSubmitting(true);
 
-      const { error } = await supabase.from('services').insert({
-        name: data.name,
-        description: data.description,
-        base_price: data.basePrice,
-        estimated_hours: data.estimatedHours,
-        category: data.category,
-        active: data.active,
-      });
+      // Create the service first
+      const { data: newService, error: serviceError } = await supabase
+        .from('services')
+        .insert({
+          name: data.name,
+          description: data.description,
+          base_price: 0, // No longer used but kept for DB compatibility
+          estimated_hours: data.estimatedHours,
+          category: data.category,
+          active: data.active,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (serviceError) throw serviceError;
+
+      // Then create the subtasks
+      if (data.subtasks && data.subtasks.length > 0) {
+        const subtasksToInsert = data.subtasks.map((st: any, index: number) => ({
+          service_id: newService.id,
+          title: st.title,
+          percentage: st.percentage,
+          sort_order: index,
+        }));
+
+        const { error: subtasksError } = await supabase
+          .from('service_subtasks')
+          .insert(subtasksToInsert);
+
+        if (subtasksError) throw subtasksError;
+      }
 
       toast.success('Service created successfully!');
       router.push('/services');

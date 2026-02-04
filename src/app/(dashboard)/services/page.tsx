@@ -36,27 +36,41 @@ export default function ServicesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
-  // Fetch services from Supabase
+  // Fetch services with subtasks from Supabase
   useEffect(() => {
     async function fetchServices() {
       try {
         setLoading(true);
         const { data, error } = await supabase
           .from('services')
-          .select('*')
+          .select(`
+            *,
+            service_subtasks (
+              id,
+              title,
+              percentage,
+              sort_order
+            )
+          `)
           .order('category')
           .order('name');
 
         if (error) throw error;
 
-        const mapped: Service[] = (data || []).map((s) => ({
+        const mapped: Service[] = (data || []).map((s: any) => ({
           id: s.id,
           name: s.name,
           description: s.description || '',
-          basePrice: Number(s.base_price),
           estimatedHours: s.estimated_hours,
           category: s.category as ServiceCategory,
           active: s.active,
+          subtasks: (s.service_subtasks || []).map((st: any) => ({
+            id: st.id,
+            serviceId: s.id,
+            title: st.title,
+            percentage: Number(st.percentage),
+            sortOrder: st.sort_order,
+          })),
         }));
 
         setServices(mapped);

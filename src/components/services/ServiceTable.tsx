@@ -19,8 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared';
 import { Service, ServiceCategory } from '@/types';
-import { formatCurrency } from '@/lib/utils/format';
-import { MoreHorizontal, Eye, Pencil, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, Trash2, ListChecks } from 'lucide-react';
 
 const serviceCategoryLabels: Record<ServiceCategory, string> = {
   powerpoint: 'Power Point',
@@ -52,8 +51,8 @@ export function ServiceTable({ services, onDelete }: ServiceTableProps) {
           <TableRow>
             <TableHead className="w-[350px]">Service</TableHead>
             <TableHead>Category</TableHead>
-            <TableHead className="text-right">Base Price</TableHead>
             <TableHead className="text-right">Est. Hours</TableHead>
+            <TableHead className="text-center">Subtasks</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -83,10 +82,13 @@ export function ServiceTable({ services, onDelete }: ServiceTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
-                <span className="font-medium">{formatCurrency(service.basePrice)}</span>
+                <span className="font-medium">{service.estimatedHours}h</span>
               </TableCell>
-              <TableCell className="text-right">
-                <span className="text-muted-foreground">{service.estimatedHours}h</span>
+              <TableCell className="text-center">
+                <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                  <ListChecks className="h-4 w-4" />
+                  <span>{service.subtasks?.length || 0}</span>
+                </div>
               </TableCell>
               <TableCell>
                 <StatusBadge

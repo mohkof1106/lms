@@ -5,9 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Service, ServiceCategory } from '@/types';
-import { formatCurrency } from '@/lib/utils/format';
-import { Clock, Trash2 } from 'lucide-react';
-import { AedIcon } from '@/components/ui/aed-icon';
+import { Clock, Trash2, ListChecks } from 'lucide-react';
 
 const serviceCategoryLabels: Record<ServiceCategory, string> = {
   powerpoint: 'Power Point',
@@ -77,15 +75,15 @@ export function ServiceCard({ service, onDelete }: ServiceCardProps) {
           </p>
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1 text-muted-foreground">
-              <AedIcon className="h-4 w-4" />
-              <span className="font-medium text-foreground">
-                {formatCurrency(service.basePrice)}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>{service.estimatedHours}h</span>
+              <span className="font-medium text-foreground">{service.estimatedHours}h</span>
             </div>
+            {service.subtasks && service.subtasks.length > 0 && (
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <ListChecks className="h-4 w-4" />
+                <span>{service.subtasks.length} subtask{service.subtasks.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

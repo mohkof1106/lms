@@ -15,4 +15,4 @@ export const supabase = createBrowserClient<Database>(
 )
 
 // Re-export types for convenience
-export type { Database, Tables, Enums, Functions } from './database.types'
+export type { Database, Tables, Enums } from './database.types'
