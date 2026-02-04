@@ -1046,6 +1046,23 @@ export default function EstimatorPage() {
             </CardContent>
           </Card>
 
+          {/* Actions */}
+          <Card>
+            <CardContent className="pt-6 space-y-2">
+              <Button
+                className="w-full"
+                disabled={calculation.totalHours === 0 || !title || !isHoursValid}
+                onClick={handleCreateOffer}
+              >
+                <AedIcon className="h-4 w-4 mr-2" />
+                Create Offer
+              </Button>
+              <Button variant="outline" className="w-full" disabled>
+                Save as Template
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Time Reference */}
           <Card>
             <CardHeader className="pb-3">
@@ -1069,23 +1086,6 @@ export default function EstimatorPage() {
                   <div className="text-lg font-semibold">≈{timeRef.month}h</div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Actions */}
-          <Card>
-            <CardContent className="pt-6 space-y-2">
-              <Button
-                className="w-full"
-                disabled={calculation.totalHours === 0 || !title || !isHoursValid}
-                onClick={handleCreateOffer}
-              >
-                <AedIcon className="h-4 w-4 mr-2" />
-                Create Offer
-              </Button>
-              <Button variant="outline" className="w-full" disabled>
-                Save as Template
-              </Button>
             </CardContent>
           </Card>
         </div>
