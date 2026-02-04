@@ -7,53 +7,83 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.1"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       assets: {
         Row: {
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["asset_category"]
+          created_at: string
+          current_value: number
+          depreciation_per_year: number
           id: string
           name: string
-          category: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
+          notes: string | null
           purchase_date: string
           purchase_price: number
-          useful_life_years: number
-          current_value: number
-          depreciation_per_year: number
-          assigned_to: string | null
           serial_number: string | null
-          notes: string | null
-          created_at: string
           updated_at: string
+          useful_life_years: number
         }
         Insert: {
-          id?: string
-          name: string
-          category: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
-          purchase_date: string
-          purchase_price: number
-          useful_life_years?: number
+          assigned_to?: string | null
+          category: Database["public"]["Enums"]["asset_category"]
+          created_at?: string
           current_value: number
           depreciation_per_year: number
-          assigned_to?: string | null
-          serial_number?: string | null
+          id?: string
+          name: string
           notes?: string | null
-          created_at?: string
+          purchase_date: string
+          purchase_price: number
+          serial_number?: string | null
           updated_at?: string
+          useful_life_years?: number
         }
         Update: {
-          id?: string
-          name?: string
-          category?: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
-          purchase_date?: string
-          purchase_price?: number
-          useful_life_years?: number
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["asset_category"]
+          created_at?: string
           current_value?: number
           depreciation_per_year?: number
-          assigned_to?: string | null
-          serial_number?: string | null
+          id?: string
+          name?: string
           notes?: string | null
-          created_at?: string
+          purchase_date?: string
+          purchase_price?: number
+          serial_number?: string | null
           updated_at?: string
+          useful_life_years?: number
         }
         Relationships: [
           {
@@ -62,84 +92,84 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employees"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       company_settings: {
         Row: {
-          id: string
-          name: string
-          address: string
-          trn: string | null
-          logo_url: string | null
-          working_hours_per_day: number
-          working_days_per_week: number
-          default_vat_rate: number
-          default_profit_margin: number
-          currency: string
+          address: string | null
           created_at: string
+          currency: string
+          default_profit_margin: number
+          default_vat_rate: number
+          id: string
+          logo_url: string | null
+          name: string
+          trn: string | null
           updated_at: string
+          working_days_per_week: number
+          working_hours_per_day: number
         }
         Insert: {
-          id?: string
-          name: string
-          address: string
-          trn?: string | null
-          logo_url?: string | null
-          working_hours_per_day?: number
-          working_days_per_week?: number
-          default_vat_rate?: number
-          default_profit_margin?: number
-          currency?: string
+          address?: string | null
           created_at?: string
+          currency?: string
+          default_profit_margin?: number
+          default_vat_rate?: number
+          id?: string
+          logo_url?: string | null
+          name: string
+          trn?: string | null
           updated_at?: string
+          working_days_per_week?: number
+          working_hours_per_day?: number
         }
         Update: {
-          id?: string
-          name?: string
-          address?: string
-          trn?: string | null
-          logo_url?: string | null
-          working_hours_per_day?: number
-          working_days_per_week?: number
-          default_vat_rate?: number
-          default_profit_margin?: number
-          currency?: string
+          address?: string | null
           created_at?: string
+          currency?: string
+          default_profit_margin?: number
+          default_vat_rate?: number
+          id?: string
+          logo_url?: string | null
+          name?: string
+          trn?: string | null
           updated_at?: string
+          working_days_per_week?: number
+          working_hours_per_day?: number
         }
         Relationships: []
       }
       customer_contacts: {
         Row: {
-          id: string
+          created_at: string
           customer_id: string
-          name: string
           email: string | null
+          id: string
+          is_primary: boolean
+          name: string
           phone: string | null
           position: string | null
-          is_primary: boolean
-          created_at: string
         }
         Insert: {
-          id?: string
+          created_at?: string
           customer_id: string
-          name: string
           email?: string | null
+          id?: string
+          is_primary?: boolean
+          name: string
           phone?: string | null
           position?: string | null
-          is_primary?: boolean
-          created_at?: string
         }
         Update: {
-          id?: string
+          created_at?: string
           customer_id?: string
-          name?: string
           email?: string | null
+          id?: string
+          is_primary?: boolean
+          name?: string
           phone?: string | null
           position?: string | null
-          is_primary?: boolean
-          created_at?: string
         }
         Relationships: [
           {
@@ -148,165 +178,168 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       customers: {
         Row: {
+          created_at: string
           id: string
-          name: string
-          location: string | null
-          website: string | null
           industry: string | null
+          location: string | null
+          name: string
           notes: string | null
           trn: string | null
-          created_at: string
           updated_at: string
+          website: string | null
         }
         Insert: {
+          created_at?: string
           id?: string
-          name: string
-          location?: string | null
-          website?: string | null
           industry?: string | null
+          location?: string | null
+          name: string
           notes?: string | null
           trn?: string | null
-          created_at?: string
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          created_at?: string
           id?: string
-          name?: string
-          location?: string | null
-          website?: string | null
           industry?: string | null
+          location?: string | null
+          name?: string
           notes?: string | null
           trn?: string | null
-          created_at?: string
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
       employees: {
         Row: {
-          id: string
-          full_name: string
-          email: string
-          phone: string | null
-          password: string | null
-          role: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
-          job_title: string | null
-          department: string | null
-          base_salary: number
-          compensation: number
-          insurance: number
-          ticket_value: number
-          visa_cost: number
-          vacation_days: number
-          start_date: string
-          end_date: string | null
           active: boolean
+          base_salary: number
+          compensation: number | null
           created_at: string
+          department: string | null
+          documents: Json | null
+          email: string
+          emergency_contact: Json | null
+          end_date: string | null
+          full_name: string
+          id: string
+          insurance: number
+          job_title: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          start_date: string
+          ticket_value: number
           updated_at: string
+          vacation_days: number
+          visa_cost: number
         }
         Insert: {
-          id?: string
-          full_name: string
-          email: string
-          phone?: string | null
-          password?: string | null
-          role?: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
-          job_title?: string | null
-          department?: string | null
-          base_salary?: number
-          compensation?: number
-          insurance?: number
-          ticket_value?: number
-          visa_cost?: number
-          vacation_days?: number
-          start_date?: string
-          end_date?: string | null
           active?: boolean
+          base_salary?: number
+          compensation?: number | null
           created_at?: string
+          department?: string | null
+          documents?: Json | null
+          email: string
+          emergency_contact?: Json | null
+          end_date?: string | null
+          full_name: string
+          id?: string
+          insurance?: number
+          job_title?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          start_date?: string
+          ticket_value?: number
           updated_at?: string
+          vacation_days?: number
+          visa_cost?: number
         }
         Update: {
-          id?: string
-          full_name?: string
-          email?: string
-          phone?: string | null
-          password?: string | null
-          role?: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
-          job_title?: string | null
-          department?: string | null
-          base_salary?: number
-          compensation?: number
-          insurance?: number
-          ticket_value?: number
-          visa_cost?: number
-          vacation_days?: number
-          start_date?: string
-          end_date?: string | null
           active?: boolean
+          base_salary?: number
+          compensation?: number | null
           created_at?: string
+          department?: string | null
+          documents?: Json | null
+          email?: string
+          emergency_contact?: Json | null
+          end_date?: string | null
+          full_name?: string
+          id?: string
+          insurance?: number
+          job_title?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          start_date?: string
+          ticket_value?: number
           updated_at?: string
+          vacation_days?: number
+          visa_cost?: number
         }
         Relationships: []
       }
       expenses: {
         Row: {
-          id: string
-          description: string
           amount: number
-          category: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
-          status: 'pending' | 'paid' | 'voided'
-          expense_date: string
-          payment_date: string | null
+          asset_id: string | null
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string | null
+          description: string
           due_date: string | null
+          expense_date: string
+          id: string
+          is_asset_purchase: boolean
+          notes: string | null
+          payment_date: string | null
           payment_method: string | null
           payment_reference: string | null
+          status: Database["public"]["Enums"]["expense_status"]
+          updated_at: string | null
           vendor_name: string | null
-          is_asset_purchase: boolean
-          asset_id: string | null
-          notes: string | null
-          created_at: string
-          updated_at: string
         }
         Insert: {
-          id?: string
-          description: string
           amount: number
-          category: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
-          status?: 'pending' | 'paid' | 'voided'
-          expense_date: string
-          payment_date?: string | null
+          asset_id?: string | null
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description: string
           due_date?: string | null
+          expense_date: string
+          id?: string
+          is_asset_purchase?: boolean
+          notes?: string | null
+          payment_date?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          updated_at?: string | null
           vendor_name?: string | null
-          is_asset_purchase?: boolean
-          asset_id?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
         }
         Update: {
-          id?: string
-          description?: string
           amount?: number
-          category?: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
-          status?: 'pending' | 'paid' | 'voided'
-          expense_date?: string
-          payment_date?: string | null
+          asset_id?: string | null
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string | null
+          description?: string
           due_date?: string | null
+          expense_date?: string
+          id?: string
+          is_asset_purchase?: boolean
+          notes?: string | null
+          payment_date?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          updated_at?: string | null
           vendor_name?: string | null
-          is_asset_purchase?: boolean
-          asset_id?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
         }
         Relationships: [
           {
@@ -315,149 +348,69 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "assets"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       holidays: {
         Row: {
+          created_at: string
+          date: string
           id: string
           name: string
-          date: string
           year: number
-          created_at: string
         }
         Insert: {
+          created_at?: string
+          date: string
           id?: string
           name: string
-          date: string
           year: number
-          created_at?: string
         }
         Update: {
+          created_at?: string
+          date?: string
           id?: string
           name?: string
-          date?: string
           year?: number
-          created_at?: string
         }
         Relationships: []
       }
-      offers: {
-        Row: {
-          id: string
-          offer_number: string
-          customer_id: string
-          title: string | null
-          date: string
-          valid_until: string
-          subtotal: number
-          discount_percent: number
-          discount_amount: number
-          vat_rate: number
-          vat_amount: number
-          total: number
-          terms: string | null
-          notes: string | null
-          status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
-          labor_cost: number
-          overhead_percent: number
-          overhead_amount: number
-          profit_amount: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          offer_number?: string
-          customer_id: string
-          title?: string | null
-          date?: string
-          valid_until: string
-          subtotal?: number
-          discount_percent?: number
-          discount_amount?: number
-          vat_rate?: number
-          vat_amount?: number
-          total?: number
-          terms?: string | null
-          notes?: string | null
-          status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
-          labor_cost?: number
-          overhead_percent?: number
-          overhead_amount?: number
-          profit_amount?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          offer_number?: string
-          customer_id?: string
-          title?: string | null
-          date?: string
-          valid_until?: string
-          subtotal?: number
-          discount_percent?: number
-          discount_amount?: number
-          vat_rate?: number
-          vat_amount?: number
-          total?: number
-          terms?: string | null
-          notes?: string | null
-          status?: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
-          labor_cost?: number
-          overhead_percent?: number
-          overhead_amount?: number
-          profit_amount?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "offers_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       offer_line_items: {
         Row: {
-          id: string
-          offer_id: string
-          service_id: string | null
+          created_at: string | null
           description: string
+          id: string
+          is_pass_through: boolean | null
+          offer_id: string
           quantity: number
-          unit_price: number
+          service_id: string | null
+          sort_order: number | null
           total: number
-          is_pass_through: boolean
-          sort_order: number
-          created_at: string
+          unit_price: number
         }
         Insert: {
-          id?: string
-          offer_id: string
-          service_id?: string | null
+          created_at?: string | null
           description: string
+          id?: string
+          is_pass_through?: boolean | null
+          offer_id: string
           quantity?: number
-          unit_price?: number
+          service_id?: string | null
+          sort_order?: number | null
           total?: number
-          is_pass_through?: boolean
-          sort_order?: number
-          created_at?: string
+          unit_price?: number
         }
         Update: {
-          id?: string
-          offer_id?: string
-          service_id?: string | null
+          created_at?: string | null
           description?: string
+          id?: string
+          is_pass_through?: boolean | null
+          offer_id?: string
           quantity?: number
-          unit_price?: number
+          service_id?: string | null
+          sort_order?: number | null
           total?: number
-          is_pass_through?: boolean
-          sort_order?: number
-          created_at?: string
+          unit_price?: number
         }
         Relationships: [
           {
@@ -473,71 +426,186 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "services"
             referencedColumns: ["id"]
-          }
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          created_at: string | null
+          customer_id: string
+          date: string
+          discount_amount: number | null
+          discount_percent: number | null
+          id: string
+          labor_cost: number | null
+          notes: string | null
+          offer_number: string
+          overhead_amount: number | null
+          overhead_percent: number | null
+          profit_amount: number | null
+          status: Database["public"]["Enums"]["offer_status"]
+          subtotal: number
+          terms: string | null
+          title: string | null
+          total: number
+          updated_at: string | null
+          valid_until: string
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id: string
+          date?: string
+          discount_amount?: number | null
+          discount_percent?: number | null
+          id?: string
+          labor_cost?: number | null
+          notes?: string | null
+          offer_number?: string
+          overhead_amount?: number | null
+          overhead_percent?: number | null
+          profit_amount?: number | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          subtotal?: number
+          terms?: string | null
+          title?: string | null
+          total?: number
+          updated_at?: string | null
+          valid_until: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string
+          date?: string
+          discount_amount?: number | null
+          discount_percent?: number | null
+          id?: string
+          labor_cost?: number | null
+          notes?: string | null
+          offer_number?: string
+          overhead_amount?: number | null
+          overhead_percent?: number | null
+          profit_amount?: number | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          subtotal?: number
+          terms?: string | null
+          title?: string | null
+          total?: number
+          updated_at?: string | null
+          valid_until?: string
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
         ]
       }
       overhead_costs: {
         Row: {
+          active: boolean
+          amount: number
+          created_at: string
+          frequency: string
           id: string
           name: string
-          amount: number
-          frequency: 'monthly' | 'yearly'
-          active: boolean
-          created_at: string
           updated_at: string
         }
         Insert: {
+          active?: boolean
+          amount: number
+          created_at?: string
+          frequency: string
           id?: string
           name: string
-          amount: number
-          frequency?: 'monthly' | 'yearly'
-          active?: boolean
-          created_at?: string
           updated_at?: string
         }
         Update: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          frequency?: string
           id?: string
           name?: string
-          amount?: number
-          frequency?: 'monthly' | 'yearly'
-          active?: boolean
-          created_at?: string
           updated_at?: string
         }
         Relationships: []
       }
+      service_subtasks: {
+        Row: {
+          created_at: string | null
+          id: string
+          percentage: number
+          service_id: string
+          sort_order: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          percentage: number
+          service_id: string
+          sort_order?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          percentage?: number
+          service_id?: string
+          sort_order?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_subtasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
+          active: boolean
+          base_price: number
+          category: Database["public"]["Enums"]["service_category"]
+          created_at: string
+          description: string | null
+          estimated_hours: number
           id: string
           name: string
-          description: string | null
-          base_price: number
-          estimated_hours: number
-          category: 'powerpoint' | 'video' | 'branding'
-          active: boolean
-          created_at: string
           updated_at: string
         }
         Insert: {
+          active?: boolean
+          base_price?: number
+          category: Database["public"]["Enums"]["service_category"]
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number
           id?: string
           name: string
-          description?: string | null
-          base_price?: number
-          estimated_hours?: number
-          category?: 'powerpoint' | 'video' | 'branding'
-          active?: boolean
-          created_at?: string
           updated_at?: string
         }
         Update: {
+          active?: boolean
+          base_price?: number
+          category?: Database["public"]["Enums"]["service_category"]
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number
           id?: string
           name?: string
-          description?: string | null
-          base_price?: number
-          estimated_hours?: number
-          category?: 'powerpoint' | 'video' | 'branding'
-          active?: boolean
-          created_at?: string
           updated_at?: string
         }
         Relationships: []
@@ -548,20 +616,56 @@ export type Database = {
     }
     Functions: {
       calculate_employee_hourly_cost: {
-        Args: {
-          p_employee_id: string
-        }
-        Returns: Json
+        Args: { p_employee_id: string }
+        Returns: {
+          asset_depreciation_monthly: number
+          benefits_cost: number
+          daily_cost: number
+          full_monthly_cost: number
+          hourly_cost: number
+          monthly_cost: number
+          overhead_share: number
+          working_days_per_week: number
+          working_days_per_year: number
+          working_hours_per_day: number
+          yearly_cost: number
+        }[]
       }
+      generate_offer_number: { Args: never; Returns: string }
+      get_active_employee_count: { Args: never; Returns: number }
+      get_employee_asset_depreciation: {
+        Args: { p_employee_id: string }
+        Returns: number
+      }
+      get_holiday_count: { Args: { p_year?: number }; Returns: number }
+      get_total_asset_value: { Args: never; Returns: number }
+      get_total_monthly_overhead: { Args: never; Returns: number }
     }
     Enums: {
-      asset_category: 'equipment' | 'software' | 'furniture' | 'vehicle' | 'other'
-      expense_category: 'rent' | 'utilities' | 'software' | 'equipment' | 'marketing' | 'office_supplies' | 'professional_services' | 'travel' | 'team_activities' | 'taxes_fees' | 'insurance' | 'maintenance' | 'other'
-      expense_status: 'pending' | 'paid' | 'voided'
-      offer_status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
-      overhead_frequency: 'monthly' | 'yearly'
-      service_category: 'powerpoint' | 'video' | 'branding'
-      user_role: 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm'
+      asset_category:
+        | "equipment"
+        | "software"
+        | "furniture"
+        | "vehicle"
+        | "other"
+      expense_category:
+        | "rent"
+        | "utilities"
+        | "software"
+        | "equipment"
+        | "marketing"
+        | "office_supplies"
+        | "professional_services"
+        | "travel"
+        | "team_activities"
+        | "taxes_fees"
+        | "insurance"
+        | "maintenance"
+        | "other"
+      expense_status: "pending" | "paid" | "voided"
+      offer_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
+      service_category: "powerpoint" | "video" | "branding"
+      user_role: "admin" | "sr_manager" | "manager" | "designer" | "hr" | "pm"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -569,27 +673,33 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -597,20 +707,24 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -618,20 +732,24 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -639,27 +757,71 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
-    | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
-export type Functions<
-  PublicFuncNameOrOptions extends
-    | keyof PublicSchema["Functions"]
-    | { schema: keyof Database },
-  FuncName extends PublicFuncNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicFuncNameOrOptions["schema"]]["Functions"]
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicFuncNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicFuncNameOrOptions["schema"]]["Functions"][FuncName]
-  : PublicFuncNameOrOptions extends keyof PublicSchema["Functions"]
-    ? PublicSchema["Functions"][PublicFuncNameOrOptions]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {
+      asset_category: [
+        "equipment",
+        "software",
+        "furniture",
+        "vehicle",
+        "other",
+      ],
+      expense_category: [
+        "rent",
+        "utilities",
+        "software",
+        "equipment",
+        "marketing",
+        "office_supplies",
+        "professional_services",
+        "travel",
+        "team_activities",
+        "taxes_fees",
+        "insurance",
+        "maintenance",
+        "other",
+      ],
+      expense_status: ["pending", "paid", "voided"],
+      offer_status: ["draft", "sent", "accepted", "rejected", "expired"],
+      service_category: ["powerpoint", "video", "branding"],
+      user_role: ["admin", "sr_manager", "manager", "designer", "hr", "pm"],
+    },
+  },
+} as const
