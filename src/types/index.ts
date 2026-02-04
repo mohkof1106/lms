@@ -210,6 +210,7 @@ export interface Estimate {
 
 // Offer Types
 export type OfferStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+export type OfferTaskStatus = 'not_started' | 'in_progress' | 'completed';
 
 export interface OfferLineItem {
   id: string;
@@ -242,6 +243,10 @@ export interface Offer {
   overheadPercent?: number;
   overheadAmount?: number;
   profitAmount?: number;
+  // Task workflow fields
+  lpoNumber?: string;
+  tasksInitiated?: boolean;
+  taskStatus?: OfferTaskStatus;
 }
 
 // Invoice Types
@@ -388,4 +393,80 @@ export interface OverheadCost {
   name: string;
   amount: number;
   frequency: 'monthly' | 'yearly';
+}
+
+// Task Board Types (Supabase-backed)
+export interface TaskBoardColumn {
+  id: string;
+  name: string;
+  color: string;
+  sortOrder: number;
+  isSystem: boolean;
+}
+
+export type DbTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface DbTaskSubtaskAssignee {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeJobTitle?: string;
+}
+
+export interface DbTaskSubtask {
+  id: string;
+  taskId: string;
+  serviceSubtaskId?: string;
+  title: string;
+  percentage: number;
+  hoursEstimated: number;
+  hoursActual: number;
+  targetDate?: string;
+  completedAt?: string;
+  completed: boolean;
+  sortOrder: number;
+  assignees: DbTaskSubtaskAssignee[];
+}
+
+export interface DbTask {
+  id: string;
+  offerId?: string;
+  offerLineItemId?: string;
+  serviceId?: string;
+  columnId: string;
+  title: string;
+  description?: string;
+  priority: DbTaskPriority;
+  dueDate?: string;
+  targetCompletionDate?: string;
+  hoursEstimated: number;
+  hoursActual: number;
+  revisionCount: number;
+  subtasks: DbTaskSubtask[];
+  createdAt: string;
+  updatedAt: string;
+  // Populated via joins
+  offerNumber?: string;
+  customerName?: string;
+  serviceName?: string;
+  columnName?: string;
+  columnColor?: string;
+}
+
+export interface DbTaskComment {
+  id: string;
+  taskId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: string;
+}
+
+// Task initiation types
+export interface LineItemCompletionDate {
+  lineItemId: string;
+  description: string;
+  serviceId?: string;
+  quantity: number;
+  targetDate: string;
 }

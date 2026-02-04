@@ -50,6 +50,8 @@ import {
   X,
 } from 'lucide-react';
 import { Offer, OfferLineItem, OfferStatus, Customer } from '@/types';
+import { AcceptOfferDialog } from '@/components/offers/AcceptOfferDialog';
+import { InitiateTasksDialog } from '@/components/offers/InitiateTasksDialog';
 
 const statusColors: Record<OfferStatus, string> = {
   draft: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300',
@@ -83,6 +85,10 @@ export default function OfferDetailPage() {
   const [editVatRate, setEditVatRate] = useState(5);
   const [editTerms, setEditTerms] = useState('');
   const [editNotes, setEditNotes] = useState('');
+
+  // Dialog states
+  const [showAcceptDialog, setShowAcceptDialog] = useState(false);
+  const [showInitiateTasksDialog, setShowInitiateTasksDialog] = useState(false);
 
   const offerId = params.id as string;
 
@@ -167,6 +173,8 @@ export default function OfferDetailPage() {
         overheadPercent: Number(offerData.overhead_percent) || undefined,
         overheadAmount: Number(offerData.overhead_amount) || undefined,
         profitAmount: Number(offerData.profit_amount) || undefined,
+        lpoNumber: offerData.lpo_number || undefined,
+        tasksInitiated: offerData.tasks_initiated || false,
       };
 
       setOffer(mapped);
@@ -212,22 +220,23 @@ export default function OfferDetailPage() {
     }
   };
 
-  const handleMarkAccepted = async () => {
+  const handleMarkAccepted = async (lpoNumber: string) => {
     if (!offer) return;
     setUpdating(true);
     try {
       const { error } = await supabase
         .from('offers')
-        .update({ status: 'accepted' })
+        .update({ status: 'accepted', lpo_number: lpoNumber })
         .eq('id', offer.id);
 
       if (error) throw error;
 
       toast.success('Offer marked as accepted!');
-      setOffer({ ...offer, status: 'accepted' });
+      setOffer({ ...offer, status: 'accepted', lpoNumber });
     } catch (err) {
       console.error('Error updating offer:', err);
       toast.error('Failed to update offer');
+      throw err;
     } finally {
       setUpdating(false);
     }
@@ -714,8 +723,8 @@ export default function OfferDetailPage() {
                 <XCircle className="h-4 w-4 mr-2" />
                 Reject
               </Button>
-              <Button onClick={handleMarkAccepted} disabled={updating}>
-                {updating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+              <Button onClick={() => setShowAcceptDialog(true)} disabled={updating}>
+                <CheckCircle className="h-4 w-4 mr-2" />
                 Accept
               </Button>
             </>
@@ -881,6 +890,51 @@ export default function OfferDetailPage() {
             </CardContent>
           </Card>
 
+          {/* LPO & Task Status (for accepted offers) */}
+          {offer.status === 'accepted' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Order Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {offer.lpoNumber && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">LPO Number</p>
+                    <p className="font-semibold">{offer.lpoNumber}</p>
+                  </div>
+                )}
+                <Separator />
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Task Status</p>
+                  {offer.tasksInitiated ? (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                      In Progress
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300">
+                      Not Started
+                    </Badge>
+                  )}
+                </div>
+                {!offer.tasksInitiated && (
+                  <Button
+                    className="w-full"
+                    onClick={() => setShowInitiateTasksDialog(true)}
+                  >
+                    Initiate Tasks
+                  </Button>
+                )}
+                {offer.tasksInitiated && (
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href={`/tasks?offer=${offer.id}`}>
+                      View Tasks
+                    </Link>
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Internal Summary (if data exists) */}
           {hasInternalData && (
             <Card>
@@ -967,6 +1021,27 @@ export default function OfferDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Accept Offer Dialog */}
+      <AcceptOfferDialog
+        open={showAcceptDialog}
+        onOpenChange={setShowAcceptDialog}
+        offerNumber={offer.offerNumber}
+        onAccept={handleMarkAccepted}
+      />
+
+      {/* Initiate Tasks Dialog */}
+      <InitiateTasksDialog
+        open={showInitiateTasksDialog}
+        onOpenChange={setShowInitiateTasksDialog}
+        offerId={offer.id}
+        offerNumber={offer.offerNumber}
+        lineItems={offer.lineItems}
+        onSuccess={() => {
+          toast.success('Tasks created successfully!');
+          setOffer({ ...offer, tasksInitiated: true });
+        }}
+      />
     </PageWrapper>
   );
 }

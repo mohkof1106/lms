@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { PageWrapper } from '@/components/layout';
-import { KanbanBoard } from '@/components/tasks';
+import { DbKanbanBoard } from '@/components/tasks/DbKanbanBoard';
 import { SearchInput } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,52 +14,214 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { mockTasks, taskPriorityLabels } from '@/lib/mock-data/tasks';
-import { mockProjects } from '@/lib/mock-data/projects';
-import { Plus } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { DbTask, DbTaskPriority, TaskBoardColumn } from '@/types';
+import { Plus, Loader2, Settings } from 'lucide-react';
+import { toast } from 'sonner';
+
+const priorityLabels: Record<DbTaskPriority, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  urgent: 'Urgent',
+};
 
 function TasksContent() {
   const searchParams = useSearchParams();
-  const projectFilter = searchParams.get('project') || 'all';
+  const offerFilter = searchParams.get('offer') || '';
 
+  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<DbTask[]>([]);
+  const [columns, setColumns] = useState<TaskBoardColumn[]>([]);
   const [search, setSearch] = useState('');
-  const [selectedProject, setSelectedProject] = useState(projectFilter);
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    setLoading(true);
+    try {
+      // Fetch columns
+      const { data: columnsData, error: columnsError } = await (supabase as any)
+        .from('task_board_columns')
+        .select('*')
+        .order('sort_order');
+
+      if (columnsError) throw columnsError;
+
+      const mappedColumns: TaskBoardColumn[] = (columnsData || []).map((col: any) => ({
+        id: col.id,
+        name: col.name,
+        color: col.color,
+        sortOrder: col.sort_order,
+        isSystem: col.is_system,
+      }));
+      setColumns(mappedColumns);
+
+      // Fetch tasks with subtasks and assignees
+      const { data: tasksData, error: tasksError } = await (supabase as any)
+        .from('tasks')
+        .select(`
+          *,
+          offers (offer_number, customers (name)),
+          services (name),
+          task_board_columns (name, color),
+          task_subtasks (
+            id,
+            title,
+            percentage,
+            hours_estimated,
+            hours_actual,
+            target_date,
+            completed,
+            completed_at,
+            sort_order,
+            task_subtask_assignees (
+              id,
+              employee_id,
+              employees (full_name, job_title)
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (tasksError) throw tasksError;
+
+      const mappedTasks: DbTask[] = (tasksData || []).map((task: any) => ({
+        id: task.id,
+        offerId: task.offer_id,
+        offerLineItemId: task.offer_line_item_id,
+        serviceId: task.service_id,
+        columnId: task.column_id,
+        title: task.title,
+        description: task.description,
+        priority: task.priority as DbTaskPriority,
+        dueDate: task.due_date,
+        targetCompletionDate: task.target_completion_date,
+        hoursEstimated: Number(task.hours_estimated) || 0,
+        hoursActual: Number(task.hours_actual) || 0,
+        revisionCount: task.revision_count || 0,
+        createdAt: task.created_at,
+        updatedAt: task.updated_at,
+        offerNumber: task.offers?.offer_number,
+        customerName: task.offers?.customers?.name,
+        serviceName: task.services?.name,
+        columnName: task.task_board_columns?.name,
+        columnColor: task.task_board_columns?.color,
+        subtasks: (task.task_subtasks || []).map((st: any) => ({
+          id: st.id,
+          taskId: task.id,
+          title: st.title,
+          percentage: Number(st.percentage),
+          hoursEstimated: Number(st.hours_estimated) || 0,
+          hoursActual: Number(st.hours_actual) || 0,
+          targetDate: st.target_date,
+          completed: st.completed,
+          completedAt: st.completed_at,
+          sortOrder: st.sort_order || 0,
+          assignees: (st.task_subtask_assignees || []).map((a: any) => ({
+            id: a.id,
+            employeeId: a.employee_id,
+            employeeName: a.employees?.full_name || 'Unknown',
+            employeeJobTitle: a.employees?.job_title,
+          })),
+        })),
+      }));
+
+      setTasks(mappedTasks);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+      toast.error('Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleTaskMove = async (taskId: string, newColumnId: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('tasks')
+        .update({ column_id: newColumnId })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      // Update local state
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId
+            ? {
+                ...task,
+                columnId: newColumnId,
+                columnName: columns.find((c) => c.id === newColumnId)?.name,
+                columnColor: columns.find((c) => c.id === newColumnId)?.color,
+              }
+            : task
+        )
+      );
+
+      toast.success('Task moved');
+    } catch (err) {
+      console.error('Error moving task:', err);
+      toast.error('Failed to move task');
+    }
+  };
+
   const filteredTasks = useMemo(() => {
-    return mockTasks.filter((task) => {
+    return tasks.filter((task) => {
       const searchLower = search.toLowerCase();
       const matchesSearch =
         !search ||
         task.title.toLowerCase().includes(searchLower) ||
-        task.projectName.toLowerCase().includes(searchLower) ||
-        task.assigneeNames.some((name) => name.toLowerCase().includes(searchLower));
+        task.offerNumber?.toLowerCase().includes(searchLower) ||
+        task.customerName?.toLowerCase().includes(searchLower);
 
-      const matchesProject = selectedProject === 'all' || task.projectId === selectedProject;
       const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
+      const matchesOffer = !offerFilter || task.offerId === offerFilter;
 
-      return matchesSearch && matchesProject && matchesPriority;
+      return matchesSearch && matchesPriority && matchesOffer;
     });
-  }, [search, selectedProject, priorityFilter]);
+  }, [tasks, search, priorityFilter, offerFilter]);
 
-  const activeProjects = mockProjects.filter((p) => p.status === 'active');
-  const activeTasks = mockTasks.filter((t) => t.status !== 'delivered').length;
+  // Count active tasks (not in Completed column)
+  const completedColumn = columns.find((c) => c.name === 'Completed');
+  const activeTasks = tasks.filter((t) => t.columnId !== completedColumn?.id).length;
+
+  if (loading) {
+    return (
+      <PageWrapper title="Tasks">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper
       title="Tasks"
       description={`${activeTasks} active tasks`}
       actions={
-        <Button asChild>
-          <Link href="/tasks/new">
-            <Plus className="h-4 w-4 mr-2" />
-            New Task
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/tasks/columns">
+              <Settings className="h-4 w-4 mr-2" />
+              Manage Columns
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/tasks/new">
+              <Plus className="h-4 w-4 mr-2" />
+              New Task
+            </Link>
+          </Button>
+        </div>
       }
     >
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -67,26 +229,13 @@ function TasksContent() {
           className="flex-1 max-w-sm"
         />
         <div className="flex gap-2">
-          <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All Projects" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
-              {activeProjects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="All Priority" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Priority</SelectItem>
-              {Object.entries(taskPriorityLabels).map(([value, label]) => (
+              {Object.entries(priorityLabels).map(([value, label]) => (
                 <SelectItem key={value} value={value}>
                   {label}
                 </SelectItem>
@@ -97,12 +246,23 @@ function TasksContent() {
       </div>
 
       {/* Kanban Board */}
-      {filteredTasks.length === 0 ? (
+      {filteredTasks.length === 0 && tasks.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground mb-4">No tasks yet.</p>
+          <p className="text-sm text-muted-foreground">
+            Accept an offer and click "Initiate Tasks" to create tasks from deliverables.
+          </p>
+        </div>
+      ) : filteredTasks.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No tasks found matching your criteria.</p>
         </div>
       ) : (
-        <KanbanBoard tasks={filteredTasks} />
+        <DbKanbanBoard
+          tasks={filteredTasks}
+          columns={columns}
+          onTaskMove={handleTaskMove}
+        />
       )}
     </PageWrapper>
   );
