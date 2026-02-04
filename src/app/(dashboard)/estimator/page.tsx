@@ -47,6 +47,9 @@ import {
   Trash2,
   AlertTriangle,
   ExternalLink,
+  ChevronDown,
+  ChevronRight,
+  Clock,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { AedIcon } from '@/components/ui/aed-icon';
@@ -113,6 +116,7 @@ export default function EstimatorPage() {
   const [outsourcedSupplier, setOutsourcedSupplier] = useState('');
   const [outsourcedCost, setOutsourcedCost] = useState<number>(0);
   const [outsourcedBeforeProfit, setOutsourcedBeforeProfit] = useState(true);
+  const [outsourcedExpanded, setOutsourcedExpanded] = useState(false);
 
   // Service selection state
   const [serviceToAdd, setServiceToAdd] = useState<string>('');
@@ -490,119 +494,134 @@ export default function EstimatorPage() {
             </CardContent>
           </Card>
 
-          {/* Outsourced Services */}
+          {/* Outsourced Services - Collapsible */}
           <Card>
-            <CardHeader>
+            <CardHeader
+              className="cursor-pointer select-none"
+              onClick={() => setOutsourcedExpanded(!outsourcedExpanded)}
+            >
               <CardTitle className="flex items-center gap-2 text-lg">
+                {outsourcedExpanded ? (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                )}
                 <ExternalLink className="h-5 w-5 text-primary" />
                 Outsourced Services
+                {outsourcedItems.length > 0 && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({outsourcedItems.length} item{outsourcedItems.length > 1 ? 's' : ''})
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Add Outsourced Row */}
-              <div className="grid gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label htmlFor="outsourced-desc">Description</Label>
-                    <Input
-                      id="outsourced-desc"
-                      value={outsourcedDesc}
-                      onChange={(e) => setOutsourcedDesc(e.target.value)}
-                      placeholder="Photography, Voice Over..."
-                    />
+            {outsourcedExpanded && (
+              <CardContent className="space-y-4">
+                {/* Add Outsourced Row */}
+                <div className="grid gap-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="outsourced-desc">Description</Label>
+                      <Input
+                        id="outsourced-desc"
+                        value={outsourcedDesc}
+                        onChange={(e) => setOutsourcedDesc(e.target.value)}
+                        placeholder="Photography, Voice Over..."
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="outsourced-supplier">Supplier (optional)</Label>
+                      <Input
+                        id="outsourced-supplier"
+                        value={outsourcedSupplier}
+                        onChange={(e) => setOutsourcedSupplier(e.target.value)}
+                        placeholder="Vendor name"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label htmlFor="outsourced-supplier">Supplier (optional)</Label>
-                    <Input
-                      id="outsourced-supplier"
-                      value={outsourcedSupplier}
-                      onChange={(e) => setOutsourcedSupplier(e.target.value)}
-                      placeholder="Vendor name"
-                    />
+                  <div className="flex gap-3 items-end">
+                    <div className="w-32">
+                      <Label htmlFor="outsourced-cost">Cost (AED)</Label>
+                      <Input
+                        id="outsourced-cost"
+                        type="number"
+                        min={0}
+                        value={outsourcedCost || ''}
+                        onChange={(e) => setOutsourcedCost(parseFloat(e.target.value) || 0)}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 pb-2">
+                      <Switch
+                        id="outsourced-mode"
+                        checked={outsourcedBeforeProfit}
+                        onCheckedChange={setOutsourcedBeforeProfit}
+                      />
+                      <Label htmlFor="outsourced-mode" className="text-sm whitespace-nowrap">
+                        {outsourcedBeforeProfit ? 'Markup' : 'Pass-through'}
+                      </Label>
+                    </div>
+                    <Button onClick={handleAddOutsourced} disabled={!outsourcedDesc || outsourcedCost <= 0}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-3 items-end">
-                  <div className="w-32">
-                    <Label htmlFor="outsourced-cost">Cost (AED)</Label>
-                    <Input
-                      id="outsourced-cost"
-                      type="number"
-                      min={0}
-                      value={outsourcedCost || ''}
-                      onChange={(e) => setOutsourcedCost(parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 pb-2">
-                    <Switch
-                      id="outsourced-mode"
-                      checked={outsourcedBeforeProfit}
-                      onCheckedChange={setOutsourcedBeforeProfit}
-                    />
-                    <Label htmlFor="outsourced-mode" className="text-sm whitespace-nowrap">
-                      {outsourcedBeforeProfit ? 'Markup' : 'Pass-through'}
-                    </Label>
-                  </div>
-                  <Button onClick={handleAddOutsourced} disabled={!outsourcedDesc || outsourcedCost <= 0}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-              </div>
 
-              {/* Outsourced Items Table */}
-              {outsourcedItems.length > 0 ? (
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Supplier</TableHead>
-                        <TableHead className="w-24 text-right">Cost</TableHead>
-                        <TableHead className="w-28 text-center">Mode</TableHead>
-                        <TableHead className="w-10"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {outsourcedItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.description}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {item.supplierName || '-'}
-                          </TableCell>
-                          <TableCell className="text-right">{formatCurrency(item.cost)}</TableCell>
-                          <TableCell className="text-center">
-                            <span
-                              className={`text-xs px-2 py-1 rounded-full ${
-                                item.beforeProfit
-                                  ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                              }`}
-                            >
-                              {item.beforeProfit ? 'Markup' : 'Pass-through'}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() => handleRemoveOutsourced(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
+                {/* Outsourced Items Table */}
+                {outsourcedItems.length > 0 ? (
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Supplier</TableHead>
+                          <TableHead className="w-24 text-right">Cost</TableHead>
+                          <TableHead className="w-28 text-center">Mode</TableHead>
+                          <TableHead className="w-10"></TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed text-sm">
-                  Add vendor/outsourced costs here. Use "Markup" to add profit, or "Pass-through" for back-to-back billing.
-                </div>
-              )}
-            </CardContent>
+                      </TableHeader>
+                      <TableBody>
+                        {outsourcedItems.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.description}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {item.supplierName || '-'}
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(item.cost)}</TableCell>
+                            <TableCell className="text-center">
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full ${
+                                  item.beforeProfit
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                }`}
+                              >
+                                {item.beforeProfit ? 'Markup' : 'Pass-through'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => handleRemoveOutsourced(item.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground border rounded-lg border-dashed text-sm">
+                    Add vendor/outsourced costs here. Use "Markup" to add profit, or "Pass-through" for back-to-back billing.
+                  </div>
+                )}
+              </CardContent>
+            )}
           </Card>
 
           {/* Services Selection */}
@@ -848,25 +867,6 @@ export default function EstimatorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Time Reference */}
-              <div className="bg-muted/50 rounded-md p-3 text-sm">
-                <p className="font-medium text-muted-foreground mb-2">Time Reference</p>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <div className="text-xs text-muted-foreground">Day</div>
-                    <div className="font-medium">{timeRef.day}h</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Week</div>
-                    <div className="font-medium">{timeRef.week}h</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground">Month</div>
-                    <div className="font-medium">≈{timeRef.month}h</div>
-                  </div>
-                </div>
-              </div>
-
               {/* Service Summary */}
               {selectedServices.length > 0 && (
                 <div className="space-y-2 pb-4 border-b">
@@ -1041,6 +1041,32 @@ export default function EstimatorPage() {
                       </>
                     );
                   })()}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Time Reference */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Clock className="h-4 w-4 text-primary" />
+                Time Reference
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-muted/50 rounded-md p-3">
+                  <div className="text-xs text-muted-foreground mb-1">Day</div>
+                  <div className="text-lg font-semibold">{timeRef.day}h</div>
+                </div>
+                <div className="bg-muted/50 rounded-md p-3">
+                  <div className="text-xs text-muted-foreground mb-1">Week</div>
+                  <div className="text-lg font-semibold">{timeRef.week}h</div>
+                </div>
+                <div className="bg-muted/50 rounded-md p-3">
+                  <div className="text-xs text-muted-foreground mb-1">Month</div>
+                  <div className="text-lg font-semibold">≈{timeRef.month}h</div>
                 </div>
               </div>
             </CardContent>
