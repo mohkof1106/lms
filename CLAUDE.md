@@ -78,25 +78,31 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 - **Dark mode default**: Set via `className="dark"` on html element in `layout.tsx`
 - Theme variables defined in `globals.css`
 
-## Recent Updates (2026-02-01)
+## Recent Updates (2026-02-04)
 
-- **Fully Dynamic Employee Cost Calculation**: RPC `calculate_employee_hourly_cost` now reads ALL settings from DB
-  - `working_hours_per_day` from `company_settings` (no more hardcoded 8)
-  - `working_days_per_week` from `company_settings` (no more hardcoded 260 base days)
+- **Estimator Quick Time Buttons**: Added +D/+W/+M buttons to each employee row
+  - Quickly add 1 day, 1 week, or 1 month of hours
+  - Values calculated from `company_settings` (working_hours_per_day × working_days_per_week)
+  - Time Reference widget shows Day/Week/Month conversions
+- **Outsourced Services Collapsible**: Section collapsed by default, click to expand
+  - Shows item count when collapsed
+- **Services basePrice Removed**: Services no longer have fixed prices
+  - Pricing calculated purely from labor cost allocation
+  - Service hours distributed proportionally to team labor cost
+- **Service Subtasks**: New `service_subtasks` table for breaking down services
+  - Each subtask has title, percentage of service time, sort order
+
+## Previous Updates (2026-02-01)
+
+- **Fully Dynamic Employee Cost Calculation**: RPC `calculate_employee_hourly_cost` reads ALL settings from DB
+  - `working_hours_per_day` and `working_days_per_week` from `company_settings`
   - Returns settings in response for frontend display
-  - CostBreakdown component displays actual configured values
-- **Outsourced Services in Estimator**: New widget for vendor/third-party costs
-  - Two modes: **Markup** (profit added) vs **Pass-through** (back-to-back billing)
+- **Outsourced Services in Estimator**: Vendor/third-party costs with Markup vs Pass-through modes
   - UAE VAT compliant: single VAT rate applied to everything (per FTA VATP013)
-  - Overhead moved below Labor Cost in calculation panel (only applies to labor)
-  - Pre-calculated totals passed to offers to avoid rounding errors
-- **Offers Module Backend**: Full Supabase integration with `offers` and `offer_line_items` tables
-  - Auto-generated offer numbers (LOR-YYYY-NNN format via DB trigger)
+- **Offers Module Backend**: Full Supabase integration with auto-generated offer numbers
   - Status workflow: Draft → Sent → Accepted/Rejected (+ Expired display)
-  - CRUD operations: create, edit (draft only), delete, duplicate
-  - Estimator → Offer flow via sessionStorage with outsourced costs
-  - PDF generation with real data
-- **Customer Detail Page**: Now fetches real data from Supabase (was using mock data)
+  - CRUD operations, duplicate, Estimator → Offer flow via sessionStorage
+- **Customer Detail Page**: Now fetches real data from Supabase
 
 ## Previous Updates (2026-01-31)
 
