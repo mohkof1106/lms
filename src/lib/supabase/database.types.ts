@@ -462,7 +462,7 @@ export type Database = {
           id?: string
           labor_cost?: number | null
           notes?: string | null
-          offer_number?: string
+          offer_number: string
           overhead_amount?: number | null
           overhead_percent?: number | null
           profit_amount?: number | null
@@ -539,6 +539,27 @@ export type Database = {
         }
         Relationships: []
       }
+      service_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       service_subtasks: {
         Row: {
           created_at: string | null
@@ -579,6 +600,7 @@ export type Database = {
           active: boolean
           base_price: number
           category: Database["public"]["Enums"]["service_category"]
+          category_id: string
           created_at: string
           description: string | null
           estimated_hours: number
@@ -590,6 +612,7 @@ export type Database = {
           active?: boolean
           base_price?: number
           category: Database["public"]["Enums"]["service_category"]
+          category_id: string
           created_at?: string
           description?: string | null
           estimated_hours?: number
@@ -601,6 +624,7 @@ export type Database = {
           active?: boolean
           base_price?: number
           category?: Database["public"]["Enums"]["service_category"]
+          category_id?: string
           created_at?: string
           description?: string | null
           estimated_hours?: number
@@ -608,7 +632,15 @@ export type Database = {
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
