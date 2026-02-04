@@ -31,12 +31,13 @@ import { Badge } from '@/components/ui/badge';
 import { Offer, OfferStatus } from '@/types';
 import { offerStatusLabels } from '@/lib/mock-data/offers';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
-import { MoreHorizontal, Eye, Pencil, FileText, Trash2, Copy } from 'lucide-react';
+import { MoreHorizontal, Eye, Pencil, FileText, Trash2, Copy, Rocket } from 'lucide-react';
 
 interface OfferTableProps {
   offers: Offer[];
   onDelete?: (offerId: string) => void;
   onDuplicate?: (offerId: string) => void;
+  onInitiateTasks?: (offerId: string) => void;
 }
 
 const statusColors: Record<OfferStatus, string> = {
@@ -47,7 +48,13 @@ const statusColors: Record<OfferStatus, string> = {
   expired: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
 };
 
-export function OfferTable({ offers, onDelete, onDuplicate }: OfferTableProps) {
+const taskStatusLabels: Record<string, { label: string; color: string }> = {
+  not_started: { label: 'Not Started', color: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300' },
+  in_progress: { label: 'In Progress', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
+  completed: { label: 'Completed', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
+};
+
+export function OfferTable({ offers, onDelete, onDuplicate, onInitiateTasks }: OfferTableProps) {
   const [deleteOfferId, setDeleteOfferId] = useState<string | null>(null);
   const offerToDelete = offers.find((o) => o.id === deleteOfferId);
 
@@ -65,11 +72,13 @@ export function OfferTable({ offers, onDelete, onDuplicate }: OfferTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Offer #</TableHead>
-              <TableHead className="w-[250px]">Customer</TableHead>
+              <TableHead className="w-[200px]">Customer</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Valid Until</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>LPO</TableHead>
+              <TableHead>Tasks</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -109,6 +118,25 @@ export function OfferTable({ offers, onDelete, onDuplicate }: OfferTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell>
+                  {offer.lpoNumber ? (
+                    <span className="text-sm font-medium">{offer.lpoNumber}</span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {offer.status === 'accepted' ? (
+                    <Badge
+                      variant="secondary"
+                      className={taskStatusLabels[offer.taskStatus || 'not_started'].color}
+                    >
+                      {taskStatusLabels[offer.taskStatus || 'not_started'].label}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -131,12 +159,20 @@ export function OfferTable({ offers, onDelete, onDuplicate }: OfferTableProps) {
                         </DropdownMenuItem>
                       )}
                       {offer.status === 'accepted' && (
-                        <DropdownMenuItem asChild>
-                          <Link href={`/invoices/new?offerId=${offer.id}`}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Create Invoice
-                          </Link>
-                        </DropdownMenuItem>
+                        <>
+                          {!offer.tasksInitiated && onInitiateTasks && (
+                            <DropdownMenuItem onClick={() => onInitiateTasks(offer.id)}>
+                              <Rocket className="mr-2 h-4 w-4" />
+                              Initiate Tasks
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem asChild>
+                            <Link href={`/invoices/new?offerId=${offer.id}`}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              Create Invoice
+                            </Link>
+                          </DropdownMenuItem>
+                        </>
                       )}
                       <DropdownMenuItem onClick={() => onDuplicate?.(offer.id)}>
                         <Copy className="mr-2 h-4 w-4" />

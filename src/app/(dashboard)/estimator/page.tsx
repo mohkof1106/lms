@@ -61,7 +61,8 @@ interface EmployeeHours {
 }
 
 interface SelectedService {
-  serviceId: string;
+  id: string;         // unique row ID
+  serviceId: string;  // actual service ID
   qty: number;
 }
 
@@ -223,37 +224,36 @@ export default function EstimatorPage() {
     };
   }, [companySettings]);
 
-  // Handle adding a service
+  // Handle adding a service (allows duplicate services on separate rows)
   const handleAddService = () => {
     if (!serviceToAdd || qtyToAdd < 1) return;
 
-    setSelectedServices((prev) => {
-      const existing = prev.find((s) => s.serviceId === serviceToAdd);
-      if (existing) {
-        return prev.map((s) =>
-          s.serviceId === serviceToAdd ? { ...s, qty: s.qty + qtyToAdd } : s
-        );
-      }
-      return [...prev, { serviceId: serviceToAdd, qty: qtyToAdd }];
-    });
+    setSelectedServices((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        serviceId: serviceToAdd,
+        qty: qtyToAdd,
+      },
+    ]);
 
     setServiceToAdd('');
     setQtyToAdd(1);
   };
 
-  // Handle removing a service
-  const handleRemoveService = (serviceId: string) => {
-    setSelectedServices((prev) => prev.filter((s) => s.serviceId !== serviceId));
+  // Handle removing a service row
+  const handleRemoveService = (rowId: string) => {
+    setSelectedServices((prev) => prev.filter((s) => s.id !== rowId));
   };
 
   // Handle service qty change
-  const handleServiceQtyChange = (serviceId: string, qty: number) => {
+  const handleServiceQtyChange = (rowId: string, qty: number) => {
     if (qty < 1) {
-      handleRemoveService(serviceId);
+      handleRemoveService(rowId);
       return;
     }
     setSelectedServices((prev) =>
-      prev.map((s) => (s.serviceId === serviceId ? { ...s, qty } : s))
+      prev.map((s) => (s.id === rowId ? { ...s, qty } : s))
     );
   };
 
@@ -371,11 +371,12 @@ export default function EstimatorPage() {
 
     // Build line items from selected services with calculated prices
     // Distribute suggested price proportionally based on service hours
-    const serviceLineItems = selectedServices.map(({ serviceId, qty }) => {
+    const serviceLineItems = selectedServices.map(({ id, serviceId, qty }) => {
       const service = services.find((s) => s.id === serviceId);
       if (!service) {
         return {
-          id: `LI-${serviceId}`,
+          id: `LI-${id}`,
+          serviceId,
           description: '',
           quantity: qty,
           unitPrice: 0,
@@ -391,7 +392,8 @@ export default function EstimatorPage() {
       const unitPrice = Math.round(allocatedPrice / qty);
 
       return {
-        id: `LI-${serviceId}`,
+        id: `LI-${id}`,
+        serviceId,
         description: service.name,
         quantity: qty,
         unitPrice,
@@ -680,7 +682,7 @@ export default function EstimatorPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedServices.map(({ serviceId, qty }) => {
+                      {selectedServices.map(({ id, serviceId, qty }) => {
                         const service = services.find((s) => s.id === serviceId);
                         if (!service) return null;
                         // Calculate cost proportionally based on hours
@@ -691,7 +693,7 @@ export default function EstimatorPage() {
                         const allocatedCost = calculation.laborCost * proportion;
                         const unitCost = qty > 0 ? allocatedCost / qty : 0;
                         return (
-                          <TableRow key={serviceId}>
+                          <TableRow key={id}>
                             <TableCell className="font-medium">{service.name}</TableCell>
                             <TableCell>
                               <Input
@@ -699,7 +701,7 @@ export default function EstimatorPage() {
                                 min={1}
                                 value={qty}
                                 onChange={(e) =>
-                                  handleServiceQtyChange(serviceId, parseInt(e.target.value) || 0)
+                                  handleServiceQtyChange(id, parseInt(e.target.value) || 0)
                                 }
                                 className="w-16 text-center h-8"
                               />
@@ -719,7 +721,7 @@ export default function EstimatorPage() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:text-destructive"
-                                onClick={() => handleRemoveService(serviceId)}
+                                onClick={() => handleRemoveService(id)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { PageWrapper } from '@/components/layout';
-import { OfferTable } from '@/components/offers';
+import { OfferTable, InitiateTasksDialog } from '@/components/offers';
 import { SearchInput } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/lib/supabase';
 import { offerStatusLabels } from '@/lib/mock-data/offers';
-import { Offer, OfferStatus } from '@/types';
+import { Offer, OfferStatus, OfferLineItem, OfferTaskStatus } from '@/types';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +24,10 @@ export default function OffersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Initiate tasks dialog
+  const [initiateTasksOfferId, setInitiateTasksOfferId] = useState<string | null>(null);
+  const [initiateTasksLineItems, setInitiateTasksLineItems] = useState<OfferLineItem[]>([]);
 
   useEffect(() => {
     fetchOffers();
@@ -51,6 +55,12 @@ export default function OffersPage() {
           displayStatus = 'expired';
         }
 
+        // Determine task status
+        let taskStatus: OfferTaskStatus = 'not_started';
+        if (o.tasks_initiated) {
+          taskStatus = 'in_progress'; // Could be enhanced to check actual task completion
+        }
+
         return {
           id: o.id,
           offerNumber: o.offer_number,
@@ -72,6 +82,9 @@ export default function OffersPage() {
           overheadPercent: Number(o.overhead_percent) || undefined,
           overheadAmount: Number(o.overhead_amount) || undefined,
           profitAmount: Number(o.profit_amount) || undefined,
+          lpoNumber: o.lpo_number || undefined,
+          tasksInitiated: o.tasks_initiated || false,
+          taskStatus,
         };
       });
 
@@ -99,6 +112,39 @@ export default function OffersPage() {
       console.error('Error deleting offer:', err);
       toast.error('Failed to delete offer');
     }
+  };
+
+  const handleInitiateTasks = async (offerId: string) => {
+    try {
+      // Fetch line items for this offer
+      const { data: lineItemsData, error } = await supabase
+        .from('offer_line_items')
+        .select('*')
+        .eq('offer_id', offerId)
+        .order('sort_order');
+
+      if (error) throw error;
+
+      const lineItems: OfferLineItem[] = (lineItemsData || []).map((item) => ({
+        id: item.id,
+        serviceId: item.service_id || undefined,
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: Number(item.unit_price),
+        total: Number(item.total),
+      }));
+
+      setInitiateTasksLineItems(lineItems);
+      setInitiateTasksOfferId(offerId);
+    } catch (err) {
+      console.error('Error loading line items:', err);
+      toast.error('Failed to load line items');
+    }
+  };
+
+  const handleTasksInitiated = () => {
+    toast.success('Tasks initiated successfully!');
+    fetchOffers(); // Refresh the list
   };
 
   const handleDuplicate = async (offerId: string) => {
@@ -240,7 +286,26 @@ export default function OffersPage() {
           <p className="text-muted-foreground">No offers found matching your criteria.</p>
         </div>
       ) : (
-        <OfferTable offers={filteredOffers} onDelete={handleDelete} onDuplicate={handleDuplicate} />
+        <OfferTable
+          offers={filteredOffers}
+          onDelete={handleDelete}
+          onDuplicate={handleDuplicate}
+          onInitiateTasks={handleInitiateTasks}
+        />
+      )}
+
+      {/* Initiate Tasks Dialog */}
+      {initiateTasksOfferId && (
+        <InitiateTasksDialog
+          open={!!initiateTasksOfferId}
+          onOpenChange={(open) => {
+            if (!open) setInitiateTasksOfferId(null);
+          }}
+          offerId={initiateTasksOfferId}
+          offerNumber={offers.find((o) => o.id === initiateTasksOfferId)?.offerNumber || ''}
+          lineItems={initiateTasksLineItems}
+          onSuccess={handleTasksInitiated}
+        />
       )}
     </PageWrapper>
   );

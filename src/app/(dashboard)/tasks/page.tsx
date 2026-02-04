@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { PageWrapper } from '@/components/layout';
 import { DbKanbanBoard } from '@/components/tasks/DbKanbanBoard';
+import { TaskEditDialog } from '@/components/tasks/TaskEditDialog';
 import { SearchInput } from '@/components/shared';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +36,10 @@ function TasksContent() {
   const [columns, setColumns] = useState<TaskBoardColumn[]>([]);
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+
+  // Task edit dialog
+  const [selectedTask, setSelectedTask] = useState<DbTask | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -77,6 +82,7 @@ function TasksContent() {
             target_date,
             completed,
             completed_at,
+            status,
             sort_order,
             task_subtask_assignees (
               id,
@@ -120,6 +126,7 @@ function TasksContent() {
           targetDate: st.target_date,
           completed: st.completed,
           completedAt: st.completed_at,
+          status: st.status || 'pending',
           sortOrder: st.sort_order || 0,
           assignees: (st.task_subtask_assignees || []).map((a: any) => ({
             id: a.id,
@@ -188,6 +195,15 @@ function TasksContent() {
   // Count active tasks (not in Completed column)
   const completedColumn = columns.find((c) => c.name === 'Completed');
   const activeTasks = tasks.filter((t) => t.columnId !== completedColumn?.id).length;
+
+  const handleTaskClick = (task: DbTask) => {
+    setSelectedTask(task);
+    setEditDialogOpen(true);
+  };
+
+  const handleTaskUpdate = () => {
+    fetchData();
+  };
 
   if (loading) {
     return (
@@ -262,8 +278,18 @@ function TasksContent() {
           tasks={filteredTasks}
           columns={columns}
           onTaskMove={handleTaskMove}
+          onTaskClick={handleTaskClick}
         />
       )}
+
+      {/* Task Edit Dialog */}
+      <TaskEditDialog
+        task={selectedTask}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        columns={columns}
+        onUpdate={handleTaskUpdate}
+      />
     </PageWrapper>
   );
 }

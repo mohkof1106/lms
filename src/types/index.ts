@@ -405,6 +405,7 @@ export interface TaskBoardColumn {
 }
 
 export type DbTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type DbTaskSubtaskStatus = 'pending' | 'in_progress' | 'completed';
 
 export interface DbTaskSubtaskAssignee {
   id: string;
@@ -424,6 +425,7 @@ export interface DbTaskSubtask {
   targetDate?: string;
   completedAt?: string;
   completed: boolean;
+  status: DbTaskSubtaskStatus;
   sortOrder: number;
   assignees: DbTaskSubtaskAssignee[];
 }

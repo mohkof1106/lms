@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -15,12 +14,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DbTask, DbTaskPriority, TaskBoardColumn } from '@/types';
 import { formatDate } from '@/lib/utils/format';
-import { Calendar, CheckSquare, MoreVertical, MoveRight, Clock } from 'lucide-react';
+import { Calendar, CheckSquare, MoreVertical, MoveRight, Clock, User } from 'lucide-react';
 
 interface DbTaskCardProps {
   task: DbTask;
   columns: TaskBoardColumn[];
   onMove?: (taskId: string, newColumnId: string) => Promise<void>;
+  onClick?: (task: DbTask) => void;
 }
 
 const priorityColors: Record<DbTaskPriority, string> = {
@@ -30,7 +30,7 @@ const priorityColors: Record<DbTaskPriority, string> = {
   urgent: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 };
 
-export function DbTaskCard({ task, columns, onMove }: DbTaskCardProps) {
+export function DbTaskCard({ task, columns, onMove, onClick }: DbTaskCardProps) {
   const completedSubtasks = task.subtasks?.filter((s) => s.completed).length || 0;
   const totalSubtasks = task.subtasks?.length || 0;
 
@@ -41,78 +41,99 @@ export function DbTaskCard({ task, columns, onMove }: DbTaskCardProps) {
   });
   const assigneeList = Array.from(assigneeNames);
 
+  // Find next responsible assignee (first non-completed subtask with assignee)
+  const sortedSubtasks = [...(task.subtasks || [])].sort((a, b) => a.sortOrder - b.sortOrder);
+  const nextSubtask = sortedSubtasks.find((s) => s.status !== 'completed' && s.assignees?.length > 0);
+  const nextAssignee = nextSubtask?.assignees?.[0];
+
   // Find other columns for move action
   const otherColumns = columns.filter((c) => c.id !== task.columnId);
 
+  const handleClick = () => {
+    if (onClick) {
+      onClick(task);
+    }
+  };
+
   return (
-    <Card className="group hover:border-primary transition-colors cursor-pointer relative">
-      <Link href={`/tasks/${task.id}`}>
-        <CardContent className="p-4 space-y-3">
-          {/* Title and Priority */}
-          <div className="flex items-start justify-between gap-2">
-            <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
-            <Badge variant="secondary" className={`shrink-0 text-xs ${priorityColors[task.priority]}`}>
-              {task.priority}
-            </Badge>
+    <Card
+      className="group hover:border-primary transition-colors cursor-pointer relative"
+      onClick={handleClick}
+    >
+      <CardContent className="p-4 space-y-3">
+        {/* Title and Priority */}
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
+          <Badge variant="secondary" className={`shrink-0 text-xs ${priorityColors[task.priority]}`}>
+            {task.priority}
+          </Badge>
+        </div>
+
+        {/* Offer/Customer Info */}
+        {(task.offerNumber || task.customerName) && (
+          <p className="text-xs text-muted-foreground line-clamp-1">
+            {task.offerNumber && <span className="font-medium">{task.offerNumber}</span>}
+            {task.offerNumber && task.customerName && ' • '}
+            {task.customerName}
+          </p>
+        )}
+
+        {/* Next Responsible Assignee */}
+        {nextAssignee && (
+          <div className="flex items-center gap-2 bg-primary/5 rounded-md px-2 py-1.5">
+            <User className="h-3 w-3 text-primary" />
+            <span className="text-xs font-medium text-primary">{nextAssignee.employeeName}</span>
+            <span className="text-xs text-muted-foreground">• {nextSubtask?.title}</span>
           </div>
+        )}
 
-          {/* Offer/Customer Info */}
-          {(task.offerNumber || task.customerName) && (
-            <p className="text-xs text-muted-foreground line-clamp-1">
-              {task.offerNumber && <span className="font-medium">{task.offerNumber}</span>}
-              {task.offerNumber && task.customerName && ' • '}
-              {task.customerName}
-            </p>
-          )}
-
-          {/* Meta info */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-            {task.dueDate && (
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>{formatDate(task.dueDate)}</span>
-              </div>
-            )}
-            {task.hoursEstimated > 0 && (
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                <span>{task.hoursEstimated}h</span>
-              </div>
-            )}
-            {totalSubtasks > 0 && (
-              <div className="flex items-center gap-1">
-                <CheckSquare className="h-3 w-3" />
-                <span>
-                  {completedSubtasks}/{totalSubtasks}
-                </span>
-              </div>
-            )}
-            {task.revisionCount > 0 && (
-              <Badge variant="outline" className="text-xs">
-                R{task.revisionCount}
-              </Badge>
-            )}
-          </div>
-
-          {/* Assignees (from subtasks) */}
-          {assigneeList.length > 0 && (
+        {/* Meta info */}
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+          {task.dueDate && (
             <div className="flex items-center gap-1">
-              {assigneeList.slice(0, 3).map((name, index) => (
-                <Avatar key={index} className="h-6 w-6">
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                    {name.split(' ').map((n) => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-              ))}
-              {assigneeList.length > 3 && (
-                <span className="text-xs text-muted-foreground ml-1">
-                  +{assigneeList.length - 3}
-                </span>
-              )}
+              <Calendar className="h-3 w-3" />
+              <span>{formatDate(task.dueDate)}</span>
             </div>
           )}
-        </CardContent>
-      </Link>
+          {task.hoursEstimated > 0 && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              <span>{task.hoursEstimated}h</span>
+            </div>
+          )}
+          {totalSubtasks > 0 && (
+            <div className="flex items-center gap-1">
+              <CheckSquare className="h-3 w-3" />
+              <span>
+                {completedSubtasks}/{totalSubtasks}
+              </span>
+            </div>
+          )}
+          {task.revisionCount > 0 && (
+            <Badge variant="outline" className="text-xs">
+              R{task.revisionCount}
+            </Badge>
+          )}
+        </div>
+
+        {/* Assignees (from subtasks) */}
+        {assigneeList.length > 0 && (
+          <div className="flex items-center gap-1">
+            {assigneeList.slice(0, 3).map((name, index) => (
+              <Avatar key={index} className="h-6 w-6">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {name.split(' ').map((n) => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+            {assigneeList.length > 3 && (
+              <span className="text-xs text-muted-foreground ml-1">
+                +{assigneeList.length - 3}
+              </span>
+            )}
+          </div>
+        )}
+      </CardContent>
 
       {/* Move dropdown - show on hover */}
       {onMove && otherColumns.length > 0 && (
