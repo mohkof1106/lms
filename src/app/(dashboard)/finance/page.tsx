@@ -61,8 +61,8 @@ export default function FinancePage() {
           isAssetPurchase: e.is_asset_purchase,
           assetId: e.asset_id || undefined,
           notes: e.notes || undefined,
-          createdAt: e.created_at,
-          updatedAt: e.updated_at,
+          createdAt: e.created_at || new Date().toISOString(),
+          updatedAt: e.updated_at || new Date().toISOString(),
         }));
 
         setExpenses(mapped);

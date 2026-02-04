@@ -106,8 +106,8 @@ export default function ExpensesPage() {
           isAssetPurchase: e.is_asset_purchase,
           assetId: e.asset_id || undefined,
           notes: e.notes || undefined,
-          createdAt: e.created_at,
-          updatedAt: e.updated_at,
+          createdAt: e.created_at || new Date().toISOString(),
+          updatedAt: e.updated_at || new Date().toISOString(),
         }));
 
         const mappedEmployees: Employee[] = (employeesRes.data || []).map((e) => ({
@@ -241,8 +241,8 @@ export default function ExpensesPage() {
         isAssetPurchase: newExpense.is_asset_purchase,
         assetId: newExpense.asset_id || undefined,
         notes: newExpense.notes || undefined,
-        createdAt: newExpense.created_at,
-        updatedAt: newExpense.updated_at,
+        createdAt: newExpense.created_at || new Date().toISOString(),
+        updatedAt: newExpense.updated_at || new Date().toISOString(),
       };
 
       setExpenses([mapped, ...expenses]);
