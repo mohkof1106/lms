@@ -78,7 +78,21 @@ Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds t
 - **Dark mode default**: Set via `className="dark"` on html element in `layout.tsx`
 - Theme variables defined in `globals.css`
 
-## Recent Updates (2026-02-04)
+## Recent Updates (2026-02-05)
+
+- **Task Management System**: Full Kanban board with drag-drop and task edit dialog
+  - Tables: `task_board_columns`, `tasks`, `task_subtasks`, `task_subtask_assignees`, `task_comments`
+  - Drag-drop via @hello-pangea/dnd, columns configurable at `/tasks/columns`
+  - Task edit popup (TaskEditDialog) with subtasks, assignees, comments
+  - 3-state subtask status: pending → in_progress → completed
+  - @mention autocomplete in comments (type `@` for employee suggestions)
+- **Offers → Tasks Flow**: "Initiate Tasks" action creates tasks from accepted offers
+  - One task per line item (qty shown in title: "Service (x3)")
+  - Service subtasks auto-copied with target dates calculated backward from completion
+  - LPO Number field on offers, task status column in offers table
+- **Accept Offer Dialog**: Set LPO number when accepting, updates status to "accepted"
+
+## Previous Updates (2026-02-04)
 
 - **Service Subtasks Feature**: New `service_subtasks` table for breaking down services
   - Each subtask has title, percentage of service time, sort order

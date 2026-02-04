@@ -21,6 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { supabase } from '@/lib/supabase';
 import { DbTask, DbTaskPriority, DbTaskSubtaskStatus, TaskBoardColumn, DbTaskSubtask, Employee, DbTaskComment } from '@/types';
 import { formatDate } from '@/lib/utils/format';
@@ -85,6 +90,14 @@ export function TaskEditDialog({
   const [comments, setComments] = useState<DbTaskComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  // @mention autocomplete
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionCursorPos, setMentionCursorPos] = useState(0);
+
+  // Assignee popover state (per subtask)
+  const [openAssigneePopover, setOpenAssigneePopover] = useState<string | null>(null);
 
   // Load task data when dialog opens
   useEffect(() => {
@@ -299,8 +312,13 @@ export function TaskEditDialog({
         .eq('email', userEmail)
         .single();
 
-      const authorId = empData?.id || userData.user.id;
-      const authorName = empData?.full_name || userEmail || 'Unknown';
+      if (!empData?.id) {
+        toast.error('Your account is not linked to an employee profile');
+        return;
+      }
+
+      const authorId = empData.id;
+      const authorName = empData.full_name || userEmail || 'Unknown';
 
       const { data, error } = await (supabase as any)
         .from('task_comments')
@@ -335,6 +353,47 @@ export function TaskEditDialog({
       setSubmittingComment(false);
     }
   };
+
+  // Handle @mention detection in comment
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
+    setNewComment(value);
+    setMentionCursorPos(cursorPos);
+
+    // Find @mention pattern before cursor
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1].toLowerCase());
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+      setMentionQuery('');
+    }
+  };
+
+  // Insert mention into comment
+  const insertMention = (employeeName: string) => {
+    const textBeforeCursor = newComment.slice(0, mentionCursorPos);
+    const textAfterCursor = newComment.slice(mentionCursorPos);
+
+    // Find where the @ starts
+    const mentionStart = textBeforeCursor.lastIndexOf('@');
+    const before = textBeforeCursor.slice(0, mentionStart);
+    const after = textAfterCursor;
+
+    // Insert @FullName
+    setNewComment(`${before}@${employeeName} ${after}`);
+    setShowMentions(false);
+    setMentionQuery('');
+  };
+
+  // Filter employees for @mention
+  const mentionSuggestions = employees.filter((emp) =>
+    emp.fullName.toLowerCase().includes(mentionQuery)
+  );
 
   if (!task) return null;
 
@@ -539,25 +598,48 @@ export function TaskEditDialog({
 
                       {/* Add assignee dropdown */}
                       {!loadingEmployees && (
-                        <Select
-                          value=""
-                          onValueChange={(employeeId) => handleAddAssignee(subtask.id, employeeId)}
+                        <Popover
+                          open={openAssigneePopover === subtask.id}
+                          onOpenChange={(open) => setOpenAssigneePopover(open ? subtask.id : null)}
                         >
-                          <SelectTrigger className="h-6 w-6 p-0 border-dashed">
-                            <Plus className="h-3 w-3" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {employees
-                              .filter(
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 px-2 border-dashed text-xs"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Assign
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-48 p-1" align="start">
+                            <div className="space-y-0.5">
+                              {employees
+                                .filter(
+                                  (e) => !subtask.assignees.some((a) => a.employeeId === e.id)
+                                )
+                                .map((emp) => (
+                                  <button
+                                    key={emp.id}
+                                    onClick={() => {
+                                      handleAddAssignee(subtask.id, emp.id);
+                                      setOpenAssigneePopover(null);
+                                    }}
+                                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent"
+                                  >
+                                    {emp.fullName}
+                                  </button>
+                                ))}
+                              {employees.filter(
                                 (e) => !subtask.assignees.some((a) => a.employeeId === e.id)
-                              )
-                              .map((emp) => (
-                                <SelectItem key={emp.id} value={emp.id}>
-                                  {emp.fullName}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
+                              ).length === 0 && (
+                                <p className="px-2 py-1.5 text-sm text-muted-foreground">
+                                  All employees assigned
+                                </p>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       )}
                     </div>
                   </div>
@@ -607,13 +689,38 @@ export function TaskEditDialog({
 
             {/* Add comment */}
             <div className="flex gap-2">
-              <Textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment... (use @name to mention)"
-                rows={2}
-                className="flex-1"
-              />
+              <div className="flex-1 relative">
+                <Textarea
+                  value={newComment}
+                  onChange={handleCommentChange}
+                  placeholder="Add a comment... (use @name to mention)"
+                  rows={2}
+                  className="w-full"
+                  onBlur={() => {
+                    // Delay to allow click on suggestion
+                    setTimeout(() => setShowMentions(false), 150);
+                  }}
+                />
+                {/* @mention suggestions */}
+                {showMentions && mentionSuggestions.length > 0 && (
+                  <div className="absolute bottom-full mb-1 left-0 w-48 bg-popover border rounded-md shadow-md z-50">
+                    <div className="py-1">
+                      {mentionSuggestions.slice(0, 5).map((emp) => (
+                        <button
+                          key={emp.id}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            insertMention(emp.fullName);
+                          }}
+                          className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent"
+                        >
+                          {emp.fullName}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
               <Button
                 size="icon"
                 onClick={handleAddComment}

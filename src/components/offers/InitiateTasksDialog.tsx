@@ -186,6 +186,11 @@ export function InitiateTasksDialog({
         const completionDate = new Date(item.targetDate);
         const totalHours = item.estimatedHours * item.lineItem.quantity;
 
+        // Create task with quantity in title if > 1
+        const taskTitle = item.lineItem.quantity > 1
+          ? `${item.lineItem.description} (x${item.lineItem.quantity})`
+          : item.lineItem.description;
+
         // Create task
         const { data: task, error: taskError } = await (supabase as any)
           .from('tasks')
@@ -194,7 +199,7 @@ export function InitiateTasksDialog({
             offer_line_item_id: item.lineItem.id,
             service_id: item.lineItem.serviceId || null,
             column_id: backlogColumnId,
-            title: item.lineItem.description,
+            title: taskTitle,
             priority: 'medium',
             target_completion_date: item.targetDate,
             due_date: item.targetDate,
