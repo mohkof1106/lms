@@ -676,6 +676,8 @@ export default function EstimatorPage() {
                         <TableHead className="w-20 text-center">Qty</TableHead>
                         <TableHead className="w-24 text-right">Hrs/Unit</TableHead>
                         <TableHead className="w-24 text-right">Total Hrs</TableHead>
+                        <TableHead className="w-28 text-right">Unit Cost</TableHead>
+                        <TableHead className="w-28 text-right">Total Cost</TableHead>
                         <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -683,6 +685,13 @@ export default function EstimatorPage() {
                       {selectedServices.map(({ serviceId, qty }) => {
                         const service = services.find((s) => s.id === serviceId);
                         if (!service) return null;
+                        // Calculate cost proportionally based on hours
+                        const serviceHours = service.estimatedHours * qty;
+                        const proportion = serviceTotals.totalHours > 0
+                          ? serviceHours / serviceTotals.totalHours
+                          : 1 / selectedServices.length;
+                        const allocatedCost = calculation.laborCost * proportion;
+                        const unitCost = qty > 0 ? allocatedCost / qty : 0;
                         return (
                           <TableRow key={serviceId}>
                             <TableCell className="font-medium">{service.name}</TableCell>
@@ -700,6 +709,12 @@ export default function EstimatorPage() {
                             <TableCell className="text-right">{service.estimatedHours}h</TableCell>
                             <TableCell className="text-right font-medium">
                               {service.estimatedHours * qty}h
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(unitCost)}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              {formatCurrency(allocatedCost)}
                             </TableCell>
                             <TableCell>
                               <Button
@@ -722,6 +737,10 @@ export default function EstimatorPage() {
                         </TableCell>
                         <TableCell className="text-right font-bold">
                           {serviceTotals.totalHours}h
+                        </TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="text-right font-bold">
+                          {formatCurrency(calculation.laborCost)}
                         </TableCell>
                         <TableCell></TableCell>
                       </TableRow>

@@ -247,7 +247,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
               const subtaskHours = ((subtaskPercentage / 100) * watchEstimatedHours).toFixed(1);
 
               return (
-                <div key={field.id} className="flex gap-3 items-start">
+                <div key={field.id} className="flex gap-3 items-end">
                   <FormField
                     control={form.control}
                     name={`subtasks.${index}.title`}
@@ -280,14 +280,14 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
                       </FormItem>
                     )}
                   />
-                  <div className="w-16 pt-8 text-sm text-muted-foreground text-right">
+                  <div className="w-16 h-10 flex items-center justify-end text-sm text-muted-foreground">
                     {subtaskHours}h
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={`mt-6 ${fields.length === 1 ? 'invisible' : ''}`}
+                    className={`h-10 w-10 ${fields.length === 1 ? 'invisible' : ''}`}
                     onClick={() => remove(index)}
                     disabled={fields.length === 1}
                   >
