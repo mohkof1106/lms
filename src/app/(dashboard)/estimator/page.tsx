@@ -69,7 +69,6 @@ interface CustomerOption {
 interface ServiceOption {
   id: string;
   name: string;
-  basePrice: number;
   estimatedHours: number;
 }
 
@@ -86,6 +85,11 @@ interface OutsourcedItem {
   supplierName: string;
   cost: number;
   beforeProfit: boolean; // true = markup, false = pass-through
+}
+
+interface CompanySettings {
+  hoursPerDay: number;
+  daysPerWeek: number;
 }
 
 export default function EstimatorPage() {
@@ -114,6 +118,9 @@ export default function EstimatorPage() {
   const [serviceToAdd, setServiceToAdd] = useState<string>('');
   const [qtyToAdd, setQtyToAdd] = useState<number>(1);
 
+  // Company settings for time calculations
+  const [companySettings, setCompanySettings] = useState<CompanySettings>({ hoursPerDay: 8, daysPerWeek: 5 });
+
   // Fetch customers, services, and employees from Supabase
   useEffect(() => {
     async function fetchData() {
@@ -130,7 +137,7 @@ export default function EstimatorPage() {
       // Fetch services
       const { data: servicesData } = await supabase
         .from('services')
-        .select('id, name, base_price, estimated_hours')
+        .select('id, name, estimated_hours')
         .eq('active', true)
         .order('name');
 
@@ -138,7 +145,6 @@ export default function EstimatorPage() {
         setServices(servicesData.map((s) => ({
           id: s.id,
           name: s.name,
-          basePrice: Number(s.base_price),
           estimatedHours: s.estimated_hours,
         })));
       }
@@ -153,11 +159,23 @@ export default function EstimatorPage() {
       if (employeesData) {
         // Get hourly costs for each employee
         const employeesWithCosts: EmployeeWithCost[] = [];
+        let settingsExtracted = false;
         for (const emp of employeesData) {
           const { data: costData } = await supabase
             .rpc('calculate_employee_hourly_cost', { p_employee_id: emp.id });
 
-          const hourlyCost = Array.isArray(costData) && costData[0] ? (costData[0] as any).hourly_cost || 0 : 0;
+          const rpcResult = Array.isArray(costData) && costData[0] ? (costData[0] as any) : null;
+          const hourlyCost = rpcResult?.hourly_cost || 0;
+
+          // Extract company settings from first RPC response
+          if (!settingsExtracted && rpcResult) {
+            setCompanySettings({
+              hoursPerDay: rpcResult.working_hours_per_day || 8,
+              daysPerWeek: rpcResult.working_days_per_week || 5,
+            });
+            settingsExtracted = true;
+          }
+
           employeesWithCosts.push({
             id: emp.id,
             fullName: emp.full_name,
@@ -171,21 +189,30 @@ export default function EstimatorPage() {
     fetchData();
   }, []);
 
-  // Calculate service totals
+  // Calculate service totals (hours only, pricing is based on labor cost)
   const serviceTotals = useMemo(() => {
     let totalHours = 0;
-    let totalPrice = 0;
 
     selectedServices.forEach(({ serviceId, qty }) => {
       const service = services.find((s) => s.id === serviceId);
       if (service) {
         totalHours += service.estimatedHours * qty;
-        totalPrice += service.basePrice * qty;
       }
     });
 
-    return { totalHours, totalPrice };
+    return { totalHours };
   }, [selectedServices, services]);
+
+  // Calculate time reference values for quick-add buttons
+  const timeRef = useMemo(() => {
+    const hoursPerWeek = companySettings.hoursPerDay * companySettings.daysPerWeek;
+    const hoursPerMonth = Math.round(hoursPerWeek * 4.33); // avg weeks per month
+    return {
+      day: companySettings.hoursPerDay,
+      week: hoursPerWeek,
+      month: hoursPerMonth,
+    };
+  }, [companySettings]);
 
   // Handle adding a service
   const handleAddService = () => {
@@ -334,7 +361,7 @@ export default function EstimatorPage() {
     }
 
     // Build line items from selected services with calculated prices
-    // Distribute suggested price proportionally based on service reference cost weights
+    // Distribute suggested price proportionally based on service hours
     const serviceLineItems = selectedServices.map(({ serviceId, qty }) => {
       const service = services.find((s) => s.id === serviceId);
       if (!service) {
@@ -346,10 +373,10 @@ export default function EstimatorPage() {
         };
       }
 
-      // Calculate proportional allocation of suggested price
-      const serviceRefCost = service.basePrice * qty;
-      const proportion = serviceTotals.totalPrice > 0
-        ? serviceRefCost / serviceTotals.totalPrice
+      // Calculate proportional allocation based on hours
+      const serviceHours = service.estimatedHours * qty;
+      const proportion = serviceTotals.totalHours > 0
+        ? serviceHours / serviceTotals.totalHours
         : 1 / selectedServices.length;
       const allocatedPrice = calculation.suggestedPrice * proportion;
       const unitPrice = Math.round(allocatedPrice / qty);
@@ -630,8 +657,6 @@ export default function EstimatorPage() {
                         <TableHead className="w-20 text-center">Qty</TableHead>
                         <TableHead className="w-24 text-right">Hrs/Unit</TableHead>
                         <TableHead className="w-24 text-right">Total Hrs</TableHead>
-                        <TableHead className="w-28 text-right">Unit Cost</TableHead>
-                        <TableHead className="w-28 text-right">Total Cost</TableHead>
                         <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -657,12 +682,6 @@ export default function EstimatorPage() {
                             <TableCell className="text-right font-medium">
                               {service.estimatedHours * qty}h
                             </TableCell>
-                            <TableCell className="text-right">
-                              {formatCurrency(service.basePrice)}
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                              {formatCurrency(service.basePrice * qty)}
-                            </TableCell>
                             <TableCell>
                               <Button
                                 variant="ghost"
@@ -684,10 +703,6 @@ export default function EstimatorPage() {
                         </TableCell>
                         <TableCell className="text-right font-bold">
                           {serviceTotals.totalHours}h
-                        </TableCell>
-                        <TableCell></TableCell>
-                        <TableCell className="text-right font-bold">
-                          {formatCurrency(serviceTotals.totalPrice)}
                         </TableCell>
                         <TableCell></TableCell>
                       </TableRow>
@@ -780,6 +795,36 @@ export default function EstimatorPage() {
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
+                        {/* Quick add buttons */}
+                        <div className="flex items-center gap-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => handleHoursChange(employee.id, hours + timeRef.day)}
+                            title={`Add ${timeRef.day}h (1 day)`}
+                          >
+                            +D
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => handleHoursChange(employee.id, hours + timeRef.week)}
+                            title={`Add ${timeRef.week}h (1 week)`}
+                          >
+                            +W
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => handleHoursChange(employee.id, hours + timeRef.month)}
+                            title={`Add ${timeRef.month}h (1 month)`}
+                          >
+                            +M
+                          </Button>
+                        </div>
                         <span className="text-sm text-muted-foreground w-24 text-right">
                           {formatCurrency(employee.hourlyCost * hours)}
                         </span>
@@ -803,6 +848,25 @@ export default function EstimatorPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Time Reference */}
+              <div className="bg-muted/50 rounded-md p-3 text-sm">
+                <p className="font-medium text-muted-foreground mb-2">Time Reference</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Day</div>
+                    <div className="font-medium">{timeRef.day}h</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Week</div>
+                    <div className="font-medium">{timeRef.week}h</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">Month</div>
+                    <div className="font-medium">≈{timeRef.month}h</div>
+                  </div>
+                </div>
+              </div>
+
               {/* Service Summary */}
               {selectedServices.length > 0 && (
                 <div className="space-y-2 pb-4 border-b">
@@ -810,12 +874,6 @@ export default function EstimatorPage() {
                   <div className="flex justify-between text-sm">
                     <span>Service Hours</span>
                     <span className="font-medium">{serviceTotals.totalHours}h</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Service Cost (ref)</span>
-                    <span className="text-muted-foreground">
-                      {formatCurrency(serviceTotals.totalPrice)}
-                    </span>
                   </div>
                 </div>
               )}
