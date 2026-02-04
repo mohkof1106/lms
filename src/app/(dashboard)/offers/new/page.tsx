@@ -44,6 +44,7 @@ import { AedIcon } from '@/components/ui/aed-icon';
 
 interface LineItem {
   id: string;
+  serviceId?: string;
   description: string;
   quantity: number;
   unitPrice: number;
@@ -237,6 +238,7 @@ export default function NewOfferPage() {
       if (lineItems.length > 0) {
         const lineItemsToInsert = lineItems.map((item, index) => ({
           offer_id: newOffer.id,
+          service_id: item.serviceId || null,
           description: item.description,
           quantity: item.quantity,
           unit_price: item.unitPrice,

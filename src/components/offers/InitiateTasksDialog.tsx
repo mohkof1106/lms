@@ -165,8 +165,8 @@ export function InitiateTasksDialog({
     });
   };
 
-  // Calculate total tasks to be created
-  const totalTasks = items.reduce((sum, item) => sum + item.lineItem.quantity, 0);
+  // Calculate total tasks to be created (one per line item)
+  const totalTasks = items.length;
 
   const handleInitiate = async () => {
     setLoading(true);
@@ -181,56 +181,49 @@ export function InitiateTasksDialog({
       if (!columns) throw new Error('Backlog column not found');
       const backlogColumnId = columns.id;
 
-      // Create tasks for each line item
+      // Create ONE task per line item (not per quantity)
       for (const item of items) {
-        const qty = item.lineItem.quantity;
         const completionDate = new Date(item.targetDate);
+        const totalHours = item.estimatedHours * item.lineItem.quantity;
 
-        for (let i = 0; i < qty; i++) {
-          const taskTitle =
-            qty > 1
-              ? `${item.lineItem.description} (${i + 1}/${qty})`
-              : item.lineItem.description;
+        // Create task
+        const { data: task, error: taskError } = await (supabase as any)
+          .from('tasks')
+          .insert({
+            offer_id: offerId,
+            offer_line_item_id: item.lineItem.id,
+            service_id: item.lineItem.serviceId || null,
+            column_id: backlogColumnId,
+            title: item.lineItem.description,
+            priority: 'medium',
+            target_completion_date: item.targetDate,
+            due_date: item.targetDate,
+            hours_estimated: totalHours,
+          })
+          .select()
+          .single();
 
-          // Create task
-          const { data: task, error: taskError } = await (supabase as any)
-            .from('tasks')
-            .insert({
-              offer_id: offerId,
-              offer_line_item_id: item.lineItem.id,
-              service_id: item.lineItem.serviceId || null,
-              column_id: backlogColumnId,
-              title: taskTitle,
-              priority: 'medium',
-              target_completion_date: item.targetDate,
-              due_date: item.targetDate,
-              hours_estimated: item.estimatedHours,
-            })
-            .select()
-            .single();
+        if (taskError) throw taskError;
 
-          if (taskError) throw taskError;
+        // Create subtasks if service has subtasks
+        if (item.subtasks.length > 0) {
+          const subtaskDates = calculateSubtaskDates(completionDate, item.subtasks);
 
-          // Create subtasks if service has subtasks
-          if (item.subtasks.length > 0) {
-            const subtaskDates = calculateSubtaskDates(completionDate, item.subtasks);
+          const subtasksToInsert = subtaskDates.map((st, index) => ({
+            task_id: task.id,
+            service_subtask_id: item.subtasks[index]?.id || null,
+            title: st.title,
+            percentage: st.percentage,
+            hours_estimated: (totalHours * st.percentage) / 100,
+            target_date: st.targetDate,
+            sort_order: st.sortOrder,
+          }));
 
-            const subtasksToInsert = subtaskDates.map((st, index) => ({
-              task_id: task.id,
-              service_subtask_id: item.subtasks[index]?.id || null,
-              title: st.title,
-              percentage: st.percentage,
-              hours_estimated: (item.estimatedHours * st.percentage) / 100,
-              target_date: st.targetDate,
-              sort_order: st.sortOrder,
-            }));
+          const { error: subtaskError } = await (supabase as any)
+            .from('task_subtasks')
+            .insert(subtasksToInsert);
 
-            const { error: subtaskError } = await (supabase as any)
-              .from('task_subtasks')
-              .insert(subtasksToInsert);
-
-            if (subtaskError) throw subtaskError;
-          }
+          if (subtaskError) throw subtaskError;
         }
       }
 
@@ -322,13 +315,6 @@ export function InitiateTasksDialog({
                               </Badge>
                             )}
                           </div>
-                          {item.lineItem.quantity > 1 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Creates {item.lineItem.quantity} tasks:{' '}
-                              {item.lineItem.description} (1/{item.lineItem.quantity}
-                              ), (2/{item.lineItem.quantity}), ...
-                            </p>
-                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
