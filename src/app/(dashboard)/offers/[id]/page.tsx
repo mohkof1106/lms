@@ -129,7 +129,7 @@ export default function OfferDetailPage() {
       }
 
       const lineItems: OfferLineItem[] = (offerData.offer_line_items || [])
-        .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
+        .sort((a: { sort_order: number | null }, b: { sort_order: number | null }) => (a.sort_order || 0) - (b.sort_order || 0))
         .map((item: {
           id: string;
           service_id: string | null;
