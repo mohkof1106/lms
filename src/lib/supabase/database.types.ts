@@ -611,7 +611,7 @@ export type Database = {
         Insert: {
           active?: boolean
           base_price?: number
-          category: Database["public"]["Enums"]["service_category"]
+          category?: Database["public"]["Enums"]["service_category"]
           category_id: string
           created_at?: string
           description?: string | null

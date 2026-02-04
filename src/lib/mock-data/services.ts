@@ -1,5 +1,12 @@
 import { Service, ServiceCategory } from '@/types';
 
+// Mock categories (matching service_categories table)
+const mockCategories: Record<string, ServiceCategory> = {
+  powerpoint: { id: 'cat-ppt', name: 'PowerPoint', sortOrder: 1 },
+  video: { id: 'cat-video', name: 'Video', sortOrder: 2 },
+  branding: { id: 'cat-branding', name: 'Branding', sortOrder: 3 },
+};
+
 export const mockServices: Service[] = [
   // Power Point
   {
@@ -7,7 +14,8 @@ export const mockServices: Service[] = [
     name: 'Corporate Presentation Design',
     description: 'Professional PowerPoint presentation with custom template and graphics',
     estimatedHours: 8,
-    category: 'powerpoint',
+    categoryId: mockCategories.powerpoint.id,
+    category: mockCategories.powerpoint,
     active: true,
   },
   {
@@ -15,7 +23,8 @@ export const mockServices: Service[] = [
     name: 'Pitch Deck Design',
     description: 'Investor pitch deck with data visualization and storytelling',
     estimatedHours: 20,
-    category: 'powerpoint',
+    categoryId: mockCategories.powerpoint.id,
+    category: mockCategories.powerpoint,
     active: true,
   },
 
@@ -25,7 +34,8 @@ export const mockServices: Service[] = [
     name: 'Explainer Video (60s)',
     description: '60-second animated explainer video with voiceover',
     estimatedHours: 48,
-    category: 'video',
+    categoryId: mockCategories.video.id,
+    category: mockCategories.video,
     active: true,
   },
   {
@@ -33,7 +43,8 @@ export const mockServices: Service[] = [
     name: 'Corporate Video (2-3 min)',
     description: 'Company profile or promotional video with motion graphics',
     estimatedHours: 80,
-    category: 'video',
+    categoryId: mockCategories.video.id,
+    category: mockCategories.video,
     active: true,
   },
 
@@ -43,7 +54,8 @@ export const mockServices: Service[] = [
     name: 'Logo Design',
     description: 'Complete logo design with 3 concepts, revisions, and final files',
     estimatedHours: 20,
-    category: 'branding',
+    categoryId: mockCategories.branding.id,
+    category: mockCategories.branding,
     active: true,
   },
   {
@@ -51,7 +63,8 @@ export const mockServices: Service[] = [
     name: 'Brand Identity Package',
     description: 'Full brand identity: logo, colors, typography, brand guidelines',
     estimatedHours: 60,
-    category: 'branding',
+    categoryId: mockCategories.branding.id,
+    category: mockCategories.branding,
     active: true,
   },
 ];
@@ -61,9 +74,9 @@ export const getServiceById = (id: string): Service | undefined => {
   return mockServices.find((s) => s.id === id);
 };
 
-// Get services by category
-export const getServicesByCategory = (category: ServiceCategory): Service[] => {
-  return mockServices.filter((s) => s.category === category && s.active);
+// Get services by category ID
+export const getServicesByCategoryId = (categoryId: string): Service[] => {
+  return mockServices.filter((s) => s.categoryId === categoryId && s.active);
 };
 
 // Get active services
@@ -78,13 +91,13 @@ export const searchServices = (query: string): Service[] => {
     (s) =>
       s.name.toLowerCase().includes(lowerQuery) ||
       s.description.toLowerCase().includes(lowerQuery) ||
-      s.category.toLowerCase().includes(lowerQuery)
+      (s.category?.name.toLowerCase().includes(lowerQuery) ?? false)
   );
 };
 
 // Category labels for display
-export const serviceCategoryLabels: Record<ServiceCategory, string> = {
-  powerpoint: 'Power Point',
+export const serviceCategoryLabels: Record<string, string> = {
+  powerpoint: 'PowerPoint',
   video: 'Video',
   branding: 'Branding',
 };

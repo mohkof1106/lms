@@ -73,7 +73,11 @@ export interface Customer {
 }
 
 // Service Types
-export type ServiceCategory = 'powerpoint' | 'video' | 'branding';
+export interface ServiceCategory {
+  id: string;
+  name: string;
+  sortOrder: number;
+}
 
 export interface ServiceSubtask {
   id: string;
@@ -88,7 +92,8 @@ export interface Service {
   name: string;
   description: string;
   estimatedHours: number;
-  category: ServiceCategory;
+  categoryId: string;
+  category?: ServiceCategory;  // populated via join
   active: boolean;
   subtasks?: ServiceSubtask[];
 }

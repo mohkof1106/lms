@@ -4,14 +4,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Service, ServiceCategory } from '@/types';
+import { Service } from '@/types';
 import { Clock, Trash2, ListChecks } from 'lucide-react';
-
-const serviceCategoryLabels: Record<ServiceCategory, string> = {
-  powerpoint: 'Power Point',
-  video: 'Video',
-  branding: 'Branding',
-};
 
 interface ServiceCardProps {
   service: Service;
@@ -45,9 +39,9 @@ export function ServiceCard({ service, onDelete }: ServiceCardProps) {
               <h3 className="font-semibold truncate">{service.name}</h3>
               <Badge
                 variant="secondary"
-                className={`mt-2 ${categoryColors[service.category] || ''}`}
+                className={`mt-2 ${categoryColors[service.category?.name?.toLowerCase() || ''] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'}`}
               >
-                {serviceCategoryLabels[service.category]}
+                {service.category?.name || 'Uncategorized'}
               </Badge>
             </div>
             <div className="flex items-center gap-2">

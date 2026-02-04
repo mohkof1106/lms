@@ -26,7 +26,7 @@ export default function NewServicePage() {
           description: data.description,
           base_price: 0, // No longer used but kept for DB compatibility
           estimated_hours: data.estimatedHours,
-          category: data.category,
+          category_id: data.categoryId,
           active: data.active,
         })
         .select()

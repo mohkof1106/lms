@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/lib/supabase';
-import { Service, ServiceCategory, ServiceSubtask } from '@/types';
+import { Service, ServiceCategory } from '@/types';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -44,11 +44,6 @@ const categoryColors: Record<string, string> = {
   powerpoint: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
 };
 
-const serviceCategoryLabels: Record<ServiceCategory, string> = {
-  powerpoint: 'Power Point',
-  video: 'Video',
-  branding: 'Branding',
-};
 
 export default function ServiceDetailPage() {
   const params = useParams();
@@ -70,6 +65,11 @@ export default function ServiceDetailPage() {
           .from('services')
           .select(`
             *,
+            service_categories (
+              id,
+              name,
+              sort_order
+            ),
             service_subtasks (
               id,
               title,
@@ -83,12 +83,18 @@ export default function ServiceDetailPage() {
         if (error) throw error;
 
         if (data) {
+          const categoryData = (data as any).service_categories;
           setService({
             id: data.id,
             name: data.name,
             description: data.description || '',
             estimatedHours: data.estimated_hours,
-            category: data.category as ServiceCategory,
+            categoryId: data.category_id,
+            category: categoryData ? {
+              id: categoryData.id,
+              name: categoryData.name,
+              sortOrder: categoryData.sort_order,
+            } : undefined,
             active: data.active,
             subtasks: ((data as any).service_subtasks || []).map((st: any) => ({
               id: st.id,
@@ -141,7 +147,7 @@ export default function ServiceDetailPage() {
           name: data.name,
           description: data.description,
           estimated_hours: data.estimatedHours,
-          category: data.category,
+          category_id: data.categoryId,
           active: data.active,
         })
         .eq('id', service.id);
@@ -224,7 +230,7 @@ export default function ServiceDetailPage() {
   return (
     <PageWrapper
       title={service.name}
-      description={serviceCategoryLabels[service.category]}
+      description={service.category?.name || 'Uncategorized'}
       actions={
         <div className="flex gap-2">
           <Button variant="outline" asChild>
@@ -263,9 +269,9 @@ export default function ServiceDetailPage() {
                     <div className="flex items-center gap-2">
                       <Badge
                         variant="secondary"
-                        className={categoryColors[service.category] || ''}
+                        className={categoryColors[service.category?.name?.toLowerCase() || ''] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'}
                       >
-                        {serviceCategoryLabels[service.category]}
+                        {service.category?.name || 'Uncategorized'}
                       </Badge>
                       <StatusBadge
                         status={service.active ? 'Active' : 'Inactive'}

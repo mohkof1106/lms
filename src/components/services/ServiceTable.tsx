@@ -18,14 +18,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared';
-import { Service, ServiceCategory } from '@/types';
+import { Service } from '@/types';
 import { MoreHorizontal, Eye, Pencil, Trash2, ListChecks } from 'lucide-react';
-
-const serviceCategoryLabels: Record<ServiceCategory, string> = {
-  powerpoint: 'Power Point',
-  video: 'Video',
-  branding: 'Branding',
-};
 
 interface ServiceTableProps {
   services: Service[];
@@ -76,9 +70,9 @@ export function ServiceTable({ services, onDelete }: ServiceTableProps) {
               <TableCell>
                 <Badge
                   variant="secondary"
-                  className={categoryColors[service.category] || ''}
+                  className={categoryColors[service.category?.name?.toLowerCase() || ''] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'}
                 >
-                  {serviceCategoryLabels[service.category]}
+                  {service.category?.name || 'Uncategorized'}
                 </Badge>
               </TableCell>
               <TableCell className="text-right">

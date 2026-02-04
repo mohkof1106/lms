@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ServiceSelector } from '@/components/estimator/ServiceSelector';
 import {
   Table,
   TableBody,
@@ -73,6 +74,8 @@ interface ServiceOption {
   id: string;
   name: string;
   estimatedHours: number;
+  categoryId: string;
+  categoryName: string;
 }
 
 interface EmployeeWithCost {
@@ -138,18 +141,20 @@ export default function EstimatorPage() {
         setCustomers(customersData);
       }
 
-      // Fetch services
+      // Fetch services with categories
       const { data: servicesData } = await supabase
         .from('services')
-        .select('id, name, estimated_hours')
+        .select('id, name, estimated_hours, category_id, service_categories(id, name)')
         .eq('active', true)
         .order('name');
 
       if (servicesData) {
-        setServices(servicesData.map((s) => ({
+        setServices(servicesData.map((s: any) => ({
           id: s.id,
           name: s.name,
           estimatedHours: s.estimated_hours,
+          categoryId: s.category_id,
+          categoryName: s.service_categories?.name || 'Uncategorized',
         })));
       }
 
@@ -637,18 +642,11 @@ export default function EstimatorPage() {
               <div className="flex gap-2 items-end">
                 <div className="flex-1">
                   <Label htmlFor="service">Service</Label>
-                  <Select value={serviceToAdd} onValueChange={setServiceToAdd}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a service" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {services.map((service) => (
-                        <SelectItem key={service.id} value={service.id}>
-                          {service.name} ({service.estimatedHours}h)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <ServiceSelector
+                    services={services}
+                    value={serviceToAdd}
+                    onChange={setServiceToAdd}
+                  />
                 </div>
                 <div className="w-24">
                   <Label htmlFor="qty">Qty</Label>

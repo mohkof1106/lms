@@ -16,16 +16,9 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Service, ServiceSubtask } from '@/types';
-import { serviceCategoryLabels } from '@/lib/mock-data/services';
+import { Service } from '@/types';
+import { CategoryCombobox } from '@/components/shared/CategoryCombobox';
 import { Palette, Clock, ListChecks, Plus, Trash2 } from 'lucide-react';
 
 const subtaskSchema = z.object({
@@ -38,7 +31,7 @@ const serviceSchema = z.object({
   name: z.string().min(2, 'Service name is required'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   estimatedHours: z.number().min(0.5, 'Estimated hours must be at least 0.5'),
-  category: z.enum(['powerpoint', 'video', 'branding'] as const),
+  categoryId: z.string().min(1, 'Category is required'),
   active: z.boolean(),
   subtasks: z.array(subtaskSchema).min(1, 'At least one subtask is required'),
 }).refine(
@@ -68,7 +61,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           name: service.name,
           description: service.description,
           estimatedHours: service.estimatedHours,
-          category: service.category,
+          categoryId: service.categoryId,
           active: service.active,
           subtasks: service.subtasks && service.subtasks.length > 0
             ? service.subtasks.map((st) => ({
@@ -82,7 +75,7 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
           name: '',
           description: '',
           estimatedHours: 1,
-          category: 'powerpoint',
+          categoryId: '',
           active: true,
           subtasks: [{ title: '', percentage: 100 }],
         },
@@ -124,24 +117,16 @@ export function ServiceForm({ service, onSubmit, onCancel }: ServiceFormProps) {
             />
             <FormField
               control={form.control}
-              name="category"
+              name="categoryId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(serviceCategoryLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <CategoryCombobox
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

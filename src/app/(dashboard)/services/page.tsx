@@ -21,14 +21,9 @@ import { Service, ServiceCategory } from '@/types';
 import { Plus, LayoutGrid, List, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const serviceCategoryLabels: Record<ServiceCategory, string> = {
-  powerpoint: 'PowerPoint',
-  video: 'Video',
-  branding: 'Branding',
-};
-
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -36,15 +31,36 @@ export default function ServicesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [deleteServiceId, setDeleteServiceId] = useState<string | null>(null);
 
-  // Fetch services with subtasks from Supabase
+  // Fetch services and categories from Supabase
   useEffect(() => {
-    async function fetchServices() {
+    async function fetchData() {
       try {
         setLoading(true);
+
+        // Fetch categories
+        const { data: categoriesData } = await supabase
+          .from('service_categories')
+          .select('id, name, sort_order')
+          .order('sort_order');
+
+        if (categoriesData) {
+          setCategories(categoriesData.map(c => ({
+            id: c.id,
+            name: c.name,
+            sortOrder: c.sort_order || 0,
+          })));
+        }
+
+        // Fetch services with category join
         const { data, error } = await supabase
           .from('services')
           .select(`
             *,
+            service_categories (
+              id,
+              name,
+              sort_order
+            ),
             service_subtasks (
               id,
               title,
@@ -52,26 +68,33 @@ export default function ServicesPage() {
               sort_order
             )
           `)
-          .order('category')
           .order('name');
 
         if (error) throw error;
 
-        const mapped: Service[] = (data || []).map((s: any) => ({
-          id: s.id,
-          name: s.name,
-          description: s.description || '',
-          estimatedHours: s.estimated_hours,
-          category: s.category as ServiceCategory,
-          active: s.active,
-          subtasks: (s.service_subtasks || []).map((st: any) => ({
-            id: st.id,
-            serviceId: s.id,
-            title: st.title,
-            percentage: Number(st.percentage),
-            sortOrder: st.sort_order,
-          })),
-        }));
+        const mapped: Service[] = (data || []).map((s: any) => {
+          const categoryData = s.service_categories;
+          return {
+            id: s.id,
+            name: s.name,
+            description: s.description || '',
+            estimatedHours: s.estimated_hours,
+            categoryId: s.category_id,
+            category: categoryData ? {
+              id: categoryData.id,
+              name: categoryData.name,
+              sortOrder: categoryData.sort_order,
+            } : undefined,
+            active: s.active,
+            subtasks: (s.service_subtasks || []).map((st: any) => ({
+              id: st.id,
+              serviceId: s.id,
+              title: st.title,
+              percentage: Number(st.percentage),
+              sortOrder: st.sort_order,
+            })),
+          };
+        });
 
         setServices(mapped);
       } catch (err) {
@@ -82,7 +105,7 @@ export default function ServicesPage() {
       }
     }
 
-    fetchServices();
+    fetchData();
   }, []);
 
   const handleDeleteService = async () => {
@@ -105,18 +128,17 @@ export default function ServicesPage() {
     }
   };
 
-  const categories = Object.entries(serviceCategoryLabels) as [ServiceCategory, string][];
-
   const filteredServices = useMemo(() => {
     return services.filter((service) => {
       const searchLower = search.toLowerCase();
       const matchesSearch =
         !search ||
         service.name.toLowerCase().includes(searchLower) ||
-        service.description.toLowerCase().includes(searchLower);
+        service.description.toLowerCase().includes(searchLower) ||
+        service.category?.name.toLowerCase().includes(searchLower);
 
       const matchesCategory =
-        categoryFilter === 'all' || service.category === categoryFilter;
+        categoryFilter === 'all' || service.categoryId === categoryFilter;
 
       return matchesSearch && matchesCategory;
     });
@@ -199,14 +221,14 @@ export default function ServicesPage() {
           >
             All
           </Button>
-          {categories.map(([value, label]) => (
+          {categories.map((cat) => (
             <Button
-              key={value}
-              variant={categoryFilter === value ? 'default' : 'outline'}
+              key={cat.id}
+              variant={categoryFilter === cat.id ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setCategoryFilter(value)}
+              onClick={() => setCategoryFilter(cat.id)}
             >
-              {label}
+              {cat.name}
             </Button>
           ))}
         </div>
