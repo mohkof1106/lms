@@ -51,7 +51,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           initialized: true,
         });
       } else {
-        set({ user: null, loading: false, initialized: true });
+        // Profile doesn't exist yet — use auth session data as fallback
+        // This handles users who existed before user_profiles was created
+        set({
+          user: {
+            id: session.user.id,
+            email: session.user.email || '',
+            fullName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+            avatarUrl: null,
+            systemRole: 'admin', // First user without profile = admin fallback
+            employeeId: null,
+            isActive: true,
+            createdAt: '',
+            updatedAt: '',
+          },
+          loading: false,
+          initialized: true,
+        });
       }
 
       // Listen for auth state changes
