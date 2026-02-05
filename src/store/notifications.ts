@@ -115,61 +115,69 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       supabase.removeChannel(existing);
     }
 
-    const channel = supabase
-      .channel('user-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `recipient_id=eq.${userId}`,
-        },
-        async (payload) => {
-          const n = payload.new as any;
+    try {
+      const channel = supabase
+        .channel('user-notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `recipient_id=eq.${userId}`,
+          },
+          async (payload) => {
+            const n = payload.new as any;
 
-          // Fetch sender name
-          let senderName: string | null = null;
-          if (n.sender_id) {
-            const { data: sender } = await supabase
-              .from('user_profiles')
-              .select('full_name')
-              .eq('id', n.sender_id)
-              .single();
-            senderName = sender?.full_name || null;
+            // Fetch sender name
+            let senderName: string | null = null;
+            if (n.sender_id) {
+              const { data: sender } = await supabase
+                .from('user_profiles')
+                .select('full_name')
+                .eq('id', n.sender_id)
+                .single();
+              senderName = sender?.full_name || null;
+            }
+
+            const notification: Notification = {
+              id: n.id,
+              recipientId: n.recipient_id,
+              senderId: n.sender_id,
+              senderName: senderName || undefined,
+              type: n.type,
+              title: n.title,
+              message: n.message,
+              relatedType: n.related_type,
+              relatedId: n.related_id,
+              isRead: n.is_read,
+              createdAt: n.created_at,
+            };
+
+            set((state) => ({
+              notifications: [notification, ...state.notifications],
+              unreadCount: state.unreadCount + 1,
+            }));
+
+            // Trigger callback (sound + toast)
+            const cb = get()._onNewNotification;
+            if (cb) cb(notification);
           }
+        )
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Realtime notifications: connected');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.warn('Realtime subscription error:', err?.message || err || 'unknown');
+          } else if (status === 'CLOSED') {
+            console.log('Realtime notifications: closed');
+          }
+        });
 
-          const notification: Notification = {
-            id: n.id,
-            recipientId: n.recipient_id,
-            senderId: n.sender_id,
-            senderName: senderName || undefined,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            relatedType: n.related_type,
-            relatedId: n.related_id,
-            isRead: n.is_read,
-            createdAt: n.created_at,
-          };
-
-          set((state) => ({
-            notifications: [notification, ...state.notifications],
-            unreadCount: state.unreadCount + 1,
-          }));
-
-          // Trigger callback (sound + toast)
-          const cb = get()._onNewNotification;
-          if (cb) cb(notification);
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.warn('Realtime notification subscription error');
-        }
-      });
-
-    set({ _channel: channel });
+      set({ _channel: channel });
+    } catch (err) {
+      console.warn('Failed to setup Realtime subscription:', err);
+    }
   },
 
   unsubscribe: () => {
