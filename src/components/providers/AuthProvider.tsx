@@ -9,7 +9,6 @@ import { Loader2 } from 'lucide-react';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { initialize, initialized, loading, user } = useAuthStore();
-  const { fetchNotifications, subscribeToRealtime, unsubscribe } = useNotificationStore();
   const router = useRouter();
 
   // Initialize notification sound
@@ -21,15 +20,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Set up notifications when user is available
   useEffect(() => {
-    if (user?.id) {
-      fetchNotifications(user.id);
-      subscribeToRealtime(user.id);
+    if (!user?.id) return;
 
-      return () => {
-        unsubscribe();
-      };
-    }
-  }, [user?.id, fetchNotifications, subscribeToRealtime, unsubscribe]);
+    const store = useNotificationStore.getState();
+    store.fetchNotifications(user.id);
+    store.subscribeToRealtime(user.id);
+
+    return () => {
+      useNotificationStore.getState().unsubscribe();
+    };
+  }, [user?.id]);
 
   // Show loading spinner while initializing
   if (!initialized || loading) {

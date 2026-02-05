@@ -109,6 +109,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   },
 
   subscribeToRealtime: (userId: string) => {
+    // Guard: remove existing channel before creating a new one
+    const existing = get()._channel;
+    if (existing) {
+      supabase.removeChannel(existing);
+    }
+
     const channel = supabase
       .channel('user-notifications')
       .on(
@@ -157,7 +163,11 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           if (cb) cb(notification);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('Realtime notification subscription error');
+        }
+      });
 
     set({ _channel: channel });
   },
