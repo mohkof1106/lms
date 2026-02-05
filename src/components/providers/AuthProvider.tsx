@@ -24,10 +24,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const store = useNotificationStore.getState();
     store.fetchNotifications(user.id);
-    store.subscribeToRealtime(user.id);
+    store.startPolling(user.id);
 
     return () => {
-      useNotificationStore.getState().unsubscribe();
+      useNotificationStore.getState().stopPolling();
     };
   }, [user?.id]);
 

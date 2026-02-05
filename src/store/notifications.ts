@@ -11,13 +11,14 @@ interface NotificationState {
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   sendPing: (senderId: string, senderName: string, recipientId: string, message?: string) => Promise<void>;
-  subscribeToRealtime: (userId: string) => void;
-  unsubscribe: () => void;
+  startPolling: (userId: string) => void;
+  stopPolling: () => void;
 
   // Callback for new notification (sound + toast)
   _onNewNotification: ((notification: Notification) => void) | null;
   setOnNewNotification: (cb: ((notification: Notification) => void) | null) => void;
-  _channel: any;
+  _pollingInterval: ReturnType<typeof setInterval> | null;
+  _userId: string | null;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -25,7 +26,8 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   unreadCount: 0,
   loading: false,
   _onNewNotification: null,
-  _channel: null,
+  _pollingInterval: null,
+  _userId: null,
 
   setOnNewNotification: (cb) => set({ _onNewNotification: cb }),
 
@@ -108,83 +110,65 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     if (error) throw error;
   },
 
-  subscribeToRealtime: (userId: string) => {
-    // Guard: remove existing channel before creating a new one
-    const existing = get()._channel;
+  startPolling: (userId: string) => {
+    // Guard: clear existing interval
+    const existing = get()._pollingInterval;
     if (existing) {
-      supabase.removeChannel(existing);
+      clearInterval(existing);
     }
 
-    try {
-      const channel = supabase
-        .channel('user-notifications')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `recipient_id=eq.${userId}`,
-          },
-          async (payload) => {
-            const n = payload.new as any;
+    set({ _userId: userId });
 
-            // Fetch sender name
-            let senderName: string | null = null;
-            if (n.sender_id) {
-              const { data: sender } = await supabase
-                .from('user_profiles')
-                .select('full_name')
-                .eq('id', n.sender_id)
-                .single();
-              senderName = sender?.full_name || null;
-            }
+    // Poll every 30 seconds for new notifications
+    const interval = setInterval(async () => {
+      const prevIds = new Set(get().notifications.map((n) => n.id));
 
-            const notification: Notification = {
-              id: n.id,
-              recipientId: n.recipient_id,
-              senderId: n.sender_id,
-              senderName: senderName || undefined,
-              type: n.type,
-              title: n.title,
-              message: n.message,
-              relatedType: n.related_type,
-              relatedId: n.related_id,
-              isRead: n.is_read,
-              createdAt: n.created_at,
-            };
+      const { data } = await supabase
+        .from('notifications')
+        .select('*, sender:sender_id(full_name)')
+        .eq('recipient_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-            set((state) => ({
-              notifications: [notification, ...state.notifications],
-              unreadCount: state.unreadCount + 1,
-            }));
+      if (!data) return;
 
-            // Trigger callback (sound + toast)
-            const cb = get()._onNewNotification;
-            if (cb) cb(notification);
-          }
-        )
-        .subscribe((status, err) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('Realtime notifications: connected');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.warn('Realtime subscription error:', err?.message || err || 'unknown');
-          } else if (status === 'CLOSED') {
-            console.log('Realtime notifications: closed');
-          }
-        });
+      const notifications: Notification[] = data.map((n: any) => ({
+        id: n.id,
+        recipientId: n.recipient_id,
+        senderId: n.sender_id,
+        senderName: n.sender?.full_name || null,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        relatedType: n.related_type,
+        relatedId: n.related_id,
+        isRead: n.is_read,
+        createdAt: n.created_at,
+      }));
 
-      set({ _channel: channel });
-    } catch (err) {
-      console.warn('Failed to setup Realtime subscription:', err);
-    }
+      // Detect truly new notifications (not seen before)
+      const newOnes = notifications.filter((n) => !prevIds.has(n.id));
+
+      set({
+        notifications,
+        unreadCount: notifications.filter((n) => !n.isRead).length,
+      });
+
+      // Trigger sound + toast for each new notification
+      const cb = get()._onNewNotification;
+      if (cb) {
+        newOnes.forEach((n) => cb(n));
+      }
+    }, 30000);
+
+    set({ _pollingInterval: interval });
   },
 
-  unsubscribe: () => {
-    const { _channel } = get();
-    if (_channel) {
-      supabase.removeChannel(_channel);
-      set({ _channel: null });
+  stopPolling: () => {
+    const { _pollingInterval } = get();
+    if (_pollingInterval) {
+      clearInterval(_pollingInterval);
+      set({ _pollingInterval: null, _userId: null });
     }
   },
 }));
