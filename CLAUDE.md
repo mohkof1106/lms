@@ -20,23 +20,30 @@ Deployed on Vercel: `vercel --prod` (project: koufahis-projects/lms)
 ### Backend (Supabase)
 
 - **Auth**: Email/password authentication with RLS policies
-- **Database**: PostgreSQL with tables for employees, customers, services, service_subtasks, assets, overhead_costs, offers, offer_line_items, expenses, holidays, etc.
+- **Database**: PostgreSQL with tables for employees, customers, services, service_subtasks, assets, overhead_costs, offers, offer_line_items, expenses, holidays, user_profiles, notifications, tasks, etc.
 - **RPC Functions**: `calculate_employee_hourly_cost` returns cost breakdown with overhead share
-- **Client**: `src/lib/supabase.ts` exports configured client
+- **Client**: `src/lib/supabase/client.ts` (browser), `src/lib/supabase/server.ts` (server components)
 
 ### Routing
 
 - `src/app/(dashboard)/` — grouped route with shared layout (Sidebar + Header)
 - Root `/` redirects to `/dashboard`
 - CRUD pattern: `/module/` (list), `/module/new` (create), `/module/[id]` (detail)
-- Modules: employees, customers, services, packages, projects, tasks, offers, invoices, expenses, finance, assets, estimator, settings
+- Modules: employees, customers, services, packages, projects, tasks, offers, invoices, expenses, finance, assets, estimator, settings, profile
 
 ### Component Organization
 
 - `src/components/ui/` — shadcn/ui primitives (New York style, Radix-based)
 - `src/components/layout/` — Sidebar, Header, PageWrapper
+- `src/components/providers/` — AuthProvider (wraps dashboard)
 - `src/components/{module}/` — domain-specific components (forms, tables)
 - `src/components/shared/` — cross-module utilities (SearchInput, StatusBadge)
+
+### State Management (Zustand)
+
+- `src/store/auth.ts` — User session, profile, logout
+- `src/store/ui.ts` — Sidebar collapsed state
+- `src/store/notifications.ts` — Notifications with 30s polling
 
 ### Key Patterns
 
@@ -45,7 +52,6 @@ Deployed on Vercel: `vercel --prod` (project: koufahis-projects/lms)
 - **Tables**: Direct data prop pattern with `useMemo` for client-side filtering
 - **Data**: Supabase for persistence, mock data in `src/lib/mock-data/` for calculations
 - **Types**: All domain models in `src/types/index.ts`
-- **State**: Zustand available (`src/store/`) but not yet wired up
 
 ### Employee Cost Calculation
 
@@ -57,81 +63,78 @@ Hourly Rate = (Full Cost × 12) ÷ (Working Days × Working Hours)
 Working Days = (working_days_per_week × 52) - vacation days - public holidays
 Working Hours = from `company_settings.working_hours_per_day` (default 8)
 
-**Dynamic Settings**: All cost calculation settings come from `company_settings` table:
-- `working_hours_per_day` - hours per workday (default 8)
-- `working_days_per_week` - days per week (default 5)
-- Public holidays counted from `holidays` table by current year
-
 ### Styling
 
 - Tailwind CSS v4 (PostCSS plugin, not legacy config)
 - CSS variables in `globals.css` for theming (light/dark via next-themes)
 - Brand: primary cyan `#00BCD4`, secondary gold `#FFD700`, accent coral `#FF6B6B`
 - Path alias: `@/*` → `./src/*`
+- **Dark mode default**: Set via `className="dark"` on html element
 
 ### Layout Structure
 
 Fixed sidebar (collapsible 256px→64px) + fixed header. Main content responds to sidebar state with CSS transitions.
 
-### Theme
-
-- **Dark mode default**: Set via `className="dark"` on html element in `layout.tsx`
-- Theme variables defined in `globals.css`
-
 ## Recent Updates (2026-02-05)
 
-- **Task Management System**: Full Kanban board with drag-drop and task edit dialog
-  - Tables: `task_board_columns`, `tasks`, `task_subtasks`, `task_subtask_assignees`, `task_comments`
-  - Drag-drop via @hello-pangea/dnd, columns configurable at `/tasks/columns`
-  - Task edit popup (TaskEditDialog) with subtasks, assignees, comments
-  - 3-state subtask status: pending → in_progress → completed
-  - @mention autocomplete in comments (type `@` for employee suggestions)
-- **Offers → Tasks Flow**: "Initiate Tasks" action creates tasks from accepted offers
-  - One task per line item (qty shown in title: "Service (x3)")
-  - Service subtasks auto-copied with target dates calculated backward from completion
-  - LPO Number field on offers, task status column in offers table
-- **Accept Offer Dialog**: Set LPO number when accepting, updates status to "accepted"
+### Task Filtering & Views
+- **Employee Filter**: Multi-select filter on Tasks page to filter by assigned employees
+  - "Assigned to Me" quick button (toggles current user's employeeId)
+  - Multi-select popover with checkbox list for employees
+  - Filter logic: task matches if ANY subtask has matching assignee
+- **Task Star/Favorite**: `is_starred` boolean for marking portfolio examples
+  - Star icon on cards (hover-to-show), toggle in edit dialog, filter button
+- **"By Employee" View**: Alternative to Kanban, groups tasks by assigned employee
+  - Component: `src/components/tasks/TasksByEmployeeView.tsx`
+
+### User Management System
+- **System Roles**: Separate from job roles — admin/manager/member/viewer
+- **Tables**: `user_profiles` (linked 1:1 to auth.users), `system_role` enum
+- **Admin Page**: `/settings/users` with CRUD via server actions
+- **Server Actions**: `src/app/(dashboard)/settings/users/actions.ts` uses `SUPABASE_SERVICE_ROLE_KEY`
+- **RLS**: `is_admin()` SECURITY DEFINER function for non-recursive policy checks
+- **Sidebar**: Settings now expandable with Company + Users sub-items
+
+### Auth & Profile
+- **AuthProvider**: `src/components/providers/AuthProvider.tsx` wraps dashboard
+- **Zustand Stores**: `auth.ts` (user session), `ui.ts` (sidebar state)
+- **Profile Page**: `/profile` with password change, linked employee info
+- **Header**: Dynamic user name/role from auth store, functional Profile + Logout
+
+### Notification System
+- **Polling-Based**: 30-second polling (WebSocket Realtime disabled due to connection issues)
+- **Tables**: `notifications` with `notification_type` enum (ping, task_assigned, etc.)
+- **NotificationBell**: Popover with unread badge, notification list, mark-all-read
+- **Ping Feature**: Send message (100 chars max) to any user
+- **Sound**: Web Audio API chime + Sonner toast on new notification
+- **Store**: `src/store/notifications.ts` with startPolling/stopPolling
+
+### Employee-User Integration
+- Optional "Create user account" toggle in employee form
+- Creates both employee record + linked auth user in one step
+
+### Bug Fixes
+- Fixed recursive RLS on user_profiles (was causing 500 errors)
+- Fixed WebSocket reconnection loop → switched to polling
+- Added missing `DialogDescription` to dialogs (accessibility)
+- Fixed task comments loading with FK hint for PostgREST join
+
+## Task Management System
+
+- **Tables**: `task_board_columns`, `tasks`, `task_subtasks`, `task_subtask_assignees`, `task_comments`
+- **Kanban**: Drag-drop via @hello-pangea/dnd, columns at `/tasks/columns`
+- **Task Edit Dialog**: Subtasks, assignees, comments with @mention autocomplete
+- **Subtask Status**: pending → in_progress → completed (3-state)
+- **Offers → Tasks**: "Initiate Tasks" creates tasks from accepted offers
 
 ## Previous Updates (2026-02-04)
 
-- **Service Subtasks Feature**: New `service_subtasks` table for breaking down services
-  - Each subtask has title, percentage of service time, sort order
-  - Percentages must sum to exactly 100%
-  - Subtask form with dynamic add/remove, shows calculated hours per subtask
-  - Minimum 1 subtask required per service
-- **Services basePrice Removed**: Services no longer have fixed prices
-  - Pricing calculated purely from labor cost allocation in estimator
-  - Service hours distributed proportionally to team labor cost
-- **Estimator Cost Columns**: Unit Cost and Total Cost columns in services table
-  - Costs calculated proportionally from labor cost based on service hours
-  - Formula: `unitCost = (laborCost × serviceHours / totalHours) / qty`
-- **Estimator Quick Time Buttons**: Added +D/+W/+M buttons to each employee row
-  - Quickly add 1 day, 1 week, or 1 month of hours
-  - Values calculated from `company_settings` (working_hours_per_day × working_days_per_week)
-  - Time Reference widget shows Day/Week/Month conversions
-- **Outsourced Services Collapsible**: Section collapsed by default, click to expand
-  - Shows item count when collapsed
+- **Service Subtasks**: Breakdown services into subtasks with percentage allocation
+- **Estimator Enhancements**: Quick time buttons (+D/+W/+M), cost columns, time reference widget
+- **Outsourced Services**: Collapsible section, Markup vs Pass-through modes
 
 ## Previous Updates (2026-02-01)
 
-- **Fully Dynamic Employee Cost Calculation**: RPC `calculate_employee_hourly_cost` reads ALL settings from DB
-  - `working_hours_per_day` and `working_days_per_week` from `company_settings`
-  - Returns settings in response for frontend display
-- **Outsourced Services in Estimator**: Vendor/third-party costs with Markup vs Pass-through modes
-  - UAE VAT compliant: single VAT rate applied to everything (per FTA VATP013)
-- **Offers Module Backend**: Full Supabase integration with auto-generated offer numbers
-  - Status workflow: Draft → Sent → Accepted/Rejected (+ Expired display)
-  - CRUD operations, duplicate, Estimator → Offer flow via sessionStorage
-- **Customer Detail Page**: Now fetches real data from Supabase
-
-## Previous Updates (2026-01-31)
-
-- **Supabase Integration**: Auth (login/signup), employee CRUD, cost calculations via RPC
-- **Employee Cost Breakdown**: Table shows Monthly Salary, Benefits, Overhead, Hourly, Monthly columns
-- **Monthly Salary Grouping**: Base + Compensation shown as grouped total with breakdown
-- **Estimator**: Service selection, profit margin input, discount percentage, customer dropdown
-- **Offers**: Integration with estimator, PDF generation ready
-- **Expenses Module**: Full CRUD for expenses with categories, asset linking, recurring expenses
-- **Finance Integration**: Costs tab shows real expenses from Supabase
-- **LOR Logo**: Custom SVG icon in sidebar (`public/logo-icon.svg`)
-- **Dark Mode Default**: App now defaults to dark theme
+- **Dynamic Cost Calculation**: RPC reads all settings from DB
+- **Offers Module**: Full Supabase integration, auto-generated offer numbers
+- **Expenses Module**: Full CRUD with categories, asset linking
