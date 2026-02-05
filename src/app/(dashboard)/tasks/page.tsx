@@ -15,9 +15,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth';
 import { DbTask, DbTaskPriority, TaskBoardColumn } from '@/types';
-import { Plus, Loader2, Settings } from 'lucide-react';
+import { Plus, Loader2, Settings, User, Users, Check, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const priorityLabels: Record<DbTaskPriority, string> = {
@@ -30,6 +46,7 @@ const priorityLabels: Record<DbTaskPriority, string> = {
 function TasksContent() {
   const searchParams = useSearchParams();
   const offerFilter = searchParams.get('offer') || '';
+  const user = useAuthStore((state) => state.user);
 
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState<DbTask[]>([]);
@@ -37,12 +54,27 @@ function TasksContent() {
   const [search, setSearch] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
 
+  // Employee filter
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+  const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
+  const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
+
   // Task edit dialog
   const [selectedTask, setSelectedTask] = useState<DbTask | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  // Load employees for filter
+  useEffect(() => {
+    supabase
+      .from('employees')
+      .select('id, full_name')
+      .eq('active', true)
+      .order('full_name')
+      .then(({ data }) => setEmployees(data || []));
   }, []);
 
   async function fetchData() {
@@ -188,9 +220,16 @@ function TasksContent() {
       const matchesPriority = priorityFilter === 'all' || task.priority === priorityFilter;
       const matchesOffer = !offerFilter || task.offerId === offerFilter;
 
-      return matchesSearch && matchesPriority && matchesOffer;
+      // Employee filter: task matches if ANY subtask has an assignee in selectedEmployeeIds
+      const matchesEmployee =
+        selectedEmployeeIds.length === 0 ||
+        task.subtasks?.some((sub) =>
+          sub.assignees?.some((a) => selectedEmployeeIds.includes(a.employeeId))
+        );
+
+      return matchesSearch && matchesPriority && matchesOffer && matchesEmployee;
     });
-  }, [tasks, search, priorityFilter, offerFilter]);
+  }, [tasks, search, priorityFilter, offerFilter, selectedEmployeeIds]);
 
   // Count active tasks (not in Completed column)
   const completedColumn = columns.find((c) => c.name === 'Completed');
@@ -244,7 +283,7 @@ function TasksContent() {
           placeholder="Search tasks..."
           className="flex-1 max-w-sm"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="All Priority" />
@@ -258,6 +297,77 @@ function TasksContent() {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Assigned to Me button */}
+          {user?.employeeId && (
+            <Button
+              variant={selectedEmployeeIds.includes(user.employeeId) ? 'default' : 'outline'}
+              size="default"
+              onClick={() => {
+                if (selectedEmployeeIds.includes(user.employeeId!)) {
+                  setSelectedEmployeeIds(selectedEmployeeIds.filter((id) => id !== user.employeeId));
+                } else {
+                  setSelectedEmployeeIds([user.employeeId!]);
+                }
+              }}
+              className="gap-2"
+            >
+              <User className="h-4 w-4" />
+              Assigned to Me
+            </Button>
+          )}
+
+          {/* Employee multi-select */}
+          <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2 min-w-[140px] justify-start">
+                <Users className="h-4 w-4" />
+                {selectedEmployeeIds.length === 0
+                  ? 'All Employees'
+                  : `${selectedEmployeeIds.length} selected`}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search employees..." />
+                <CommandList>
+                  <CommandEmpty>No employees found.</CommandEmpty>
+                  <CommandGroup>
+                    {/* Clear all option */}
+                    {selectedEmployeeIds.length > 0 && (
+                      <CommandItem
+                        onSelect={() => setSelectedEmployeeIds([])}
+                        className="text-muted-foreground"
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        Clear selection
+                      </CommandItem>
+                    )}
+                    {employees.map((emp) => {
+                      const isSelected = selectedEmployeeIds.includes(emp.id);
+                      return (
+                        <CommandItem
+                          key={emp.id}
+                          onSelect={() => {
+                            if (isSelected) {
+                              setSelectedEmployeeIds(
+                                selectedEmployeeIds.filter((id) => id !== emp.id)
+                              );
+                            } else {
+                              setSelectedEmployeeIds([...selectedEmployeeIds, emp.id]);
+                            }
+                          }}
+                        >
+                          <Checkbox checked={isSelected} className="mr-2" />
+                          <span className={cn(isSelected && 'font-medium')}>{emp.full_name}</span>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
