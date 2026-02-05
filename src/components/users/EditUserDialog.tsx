@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -122,6 +123,7 @@ export function EditUserDialog({ open, onOpenChange, user, onUpdated }: EditUser
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription className="sr-only">Edit user details, role, and linked employee</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">

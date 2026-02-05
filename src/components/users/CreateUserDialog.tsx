@@ -7,6 +7,7 @@ import * as z from 'zod';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -120,6 +121,7 @@ export function CreateUserDialog({ open, onOpenChange, onCreated }: CreateUserDi
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create User</DialogTitle>
+          <DialogDescription className="sr-only">Create a new user account with role and employee link</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
