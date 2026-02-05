@@ -375,6 +375,60 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean
+          message: string | null
+          recipient_id: string
+          related_id: string | null
+          related_type: string | null
+          sender_id: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          recipient_id: string
+          related_id?: string | null
+          related_type?: string | null
+          sender_id?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string | null
+          recipient_id?: string
+          related_id?: string | null
+          related_type?: string | null
+          sender_id?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offer_line_items: {
         Row: {
           created_at: string | null
@@ -547,240 +601,24 @@ export type Database = {
       }
       service_categories: {
         Row: {
+          created_at: string | null
           id: string
           name: string
-          sort_order: number
-          created_at: string
+          sort_order: number | null
         }
         Insert: {
+          created_at?: string | null
           id?: string
           name: string
-          sort_order?: number
-          created_at?: string
+          sort_order?: number | null
         }
         Update: {
+          created_at?: string | null
           id?: string
           name?: string
-          sort_order?: number
-          created_at?: string
+          sort_order?: number | null
         }
         Relationships: []
-      }
-      task_board_columns: {
-        Row: {
-          id: string
-          name: string
-          color: string
-          sort_order: number
-          is_system: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          color?: string
-          sort_order?: number
-          is_system?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          color?: string
-          sort_order?: number
-          is_system?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      tasks: {
-        Row: {
-          id: string
-          offer_id: string | null
-          offer_line_item_id: string | null
-          service_id: string | null
-          column_id: string
-          title: string
-          description: string | null
-          priority: Database["public"]["Enums"]["task_priority"]
-          due_date: string | null
-          target_completion_date: string | null
-          hours_estimated: number
-          hours_actual: number
-          revision_count: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          offer_id?: string | null
-          offer_line_item_id?: string | null
-          service_id?: string | null
-          column_id: string
-          title: string
-          description?: string | null
-          priority?: Database["public"]["Enums"]["task_priority"]
-          due_date?: string | null
-          target_completion_date?: string | null
-          hours_estimated?: number
-          hours_actual?: number
-          revision_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          offer_id?: string | null
-          offer_line_item_id?: string | null
-          service_id?: string | null
-          column_id?: string
-          title?: string
-          description?: string | null
-          priority?: Database["public"]["Enums"]["task_priority"]
-          due_date?: string | null
-          target_completion_date?: string | null
-          hours_estimated?: number
-          hours_actual?: number
-          revision_count?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_offer_id_fkey"
-            columns: ["offer_id"]
-            isOneToOne: false
-            referencedRelation: "offers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_column_id_fkey"
-            columns: ["column_id"]
-            isOneToOne: false
-            referencedRelation: "task_board_columns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tasks_service_id_fkey"
-            columns: ["service_id"]
-            isOneToOne: false
-            referencedRelation: "services"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      task_subtasks: {
-        Row: {
-          id: string
-          task_id: string
-          title: string
-          completed: boolean
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          task_id: string
-          title: string
-          completed?: boolean
-          sort_order?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          task_id?: string
-          title?: string
-          completed?: boolean
-          sort_order?: number
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_subtasks_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      task_subtask_assignees: {
-        Row: {
-          id: string
-          task_subtask_id: string
-          employee_id: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          task_subtask_id: string
-          employee_id: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          task_subtask_id?: string
-          employee_id?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_subtask_assignees_task_subtask_id_fkey"
-            columns: ["task_subtask_id"]
-            isOneToOne: false
-            referencedRelation: "task_subtasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "task_subtask_assignees_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      task_comments: {
-        Row: {
-          id: string
-          task_id: string
-          author_id: string
-          content: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          task_id: string
-          author_id: string
-          content: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          task_id?: string
-          author_id?: string
-          content?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_comments_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "task_comments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       service_subtasks: {
         Row: {
@@ -821,7 +659,7 @@ export type Database = {
         Row: {
           active: boolean
           base_price: number
-          category: Database["public"]["Enums"]["service_category"]
+          category: Database["public"]["Enums"]["service_category"] | null
           category_id: string
           created_at: string
           description: string | null
@@ -833,7 +671,7 @@ export type Database = {
         Insert: {
           active?: boolean
           base_price?: number
-          category?: Database["public"]["Enums"]["service_category"]
+          category?: Database["public"]["Enums"]["service_category"] | null
           category_id: string
           created_at?: string
           description?: string | null
@@ -845,7 +683,7 @@ export type Database = {
         Update: {
           active?: boolean
           base_price?: number
-          category?: Database["public"]["Enums"]["service_category"]
+          category?: Database["public"]["Enums"]["service_category"] | null
           category_id?: string
           created_at?: string
           description?: string | null
@@ -860,6 +698,307 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_board_columns: {
+        Row: {
+          color: string
+          created_at: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          sort_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      task_comments: {
+        Row: {
+          author_id: string | null
+          content: string
+          created_at: string | null
+          id: string
+          task_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          task_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          task_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_subtask_assignees: {
+        Row: {
+          created_at: string | null
+          employee_id: string
+          id: string
+          task_subtask_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          task_subtask_id: string
+        }
+        Update: {
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          task_subtask_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_subtask_assignees_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_subtask_assignees_task_subtask_id_fkey"
+            columns: ["task_subtask_id"]
+            isOneToOne: false
+            referencedRelation: "task_subtasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_subtasks: {
+        Row: {
+          completed: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          hours_actual: number | null
+          hours_estimated: number | null
+          id: string
+          percentage: number
+          service_subtask_id: string | null
+          sort_order: number | null
+          status: string
+          target_date: string | null
+          task_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          hours_actual?: number | null
+          hours_estimated?: number | null
+          id?: string
+          percentage: number
+          service_subtask_id?: string | null
+          sort_order?: number | null
+          status?: string
+          target_date?: string | null
+          task_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          completed?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          hours_actual?: number | null
+          hours_estimated?: number | null
+          id?: string
+          percentage?: number
+          service_subtask_id?: string | null
+          sort_order?: number | null
+          status?: string
+          target_date?: string | null
+          task_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_subtasks_service_subtask_id_fkey"
+            columns: ["service_subtask_id"]
+            isOneToOne: false
+            referencedRelation: "service_subtasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_subtasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          column_id: string
+          created_at: string | null
+          description: string | null
+          due_date: string | null
+          hours_actual: number | null
+          hours_estimated: number | null
+          id: string
+          offer_id: string | null
+          offer_line_item_id: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          revision_count: number | null
+          service_id: string | null
+          target_completion_date: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          column_id: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          hours_actual?: number | null
+          hours_estimated?: number | null
+          id?: string
+          offer_id?: string | null
+          offer_line_item_id?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          revision_count?: number | null
+          service_id?: string | null
+          target_completion_date?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          column_id?: string
+          created_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          hours_actual?: number | null
+          hours_estimated?: number | null
+          id?: string
+          offer_id?: string | null
+          offer_line_item_id?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          revision_count?: number | null
+          service_id?: string | null
+          target_completion_date?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "task_board_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_offer_line_item_id_fkey"
+            columns: ["offer_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "offer_line_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          employee_id: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          system_role: Database["public"]["Enums"]["system_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          employee_id?: string | null
+          full_name: string
+          id: string
+          is_active?: boolean
+          system_role?: Database["public"]["Enums"]["system_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          employee_id?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          system_role?: Database["public"]["Enums"]["system_role"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -917,8 +1056,17 @@ export type Database = {
         | "maintenance"
         | "other"
       expense_status: "pending" | "paid" | "voided"
+      notification_type:
+        | "ping"
+        | "task_assigned"
+        | "comment_added"
+        | "status_change"
+        | "offer_accepted"
+        | "offer_rejected"
+        | "system"
       offer_status: "draft" | "sent" | "accepted" | "rejected" | "expired"
       service_category: "powerpoint" | "video" | "branding"
+      system_role: "admin" | "manager" | "member" | "viewer"
       task_priority: "low" | "medium" | "high" | "urgent"
       user_role: "admin" | "sr_manager" | "manager" | "designer" | "hr" | "pm"
     }
@@ -1074,8 +1222,19 @@ export const Constants = {
         "other",
       ],
       expense_status: ["pending", "paid", "voided"],
+      notification_type: [
+        "ping",
+        "task_assigned",
+        "comment_added",
+        "status_change",
+        "offer_accepted",
+        "offer_rejected",
+        "system",
+      ],
       offer_status: ["draft", "sent", "accepted", "rejected", "expired"],
       service_category: ["powerpoint", "video", "branding"],
+      system_role: ["admin", "manager", "member", "viewer"],
+      task_priority: ["low", "medium", "high", "urgent"],
       user_role: ["admin", "sr_manager", "manager", "designer", "hr", "pm"],
     },
   },

@@ -1,5 +1,38 @@
-// User Roles
+// User Roles (job roles on employees)
 export type UserRole = 'admin' | 'sr_manager' | 'manager' | 'designer' | 'hr' | 'pm';
+
+// System Roles (access control for the app)
+export type SystemRole = 'admin' | 'manager' | 'member' | 'viewer';
+
+// User Profile (linked to Supabase Auth)
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
+  systemRole: SystemRole;
+  employeeId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Notification Types
+export type NotificationType = 'ping' | 'task_assigned' | 'comment_added' | 'status_change' | 'offer_accepted' | 'offer_rejected' | 'system';
+
+export interface Notification {
+  id: string;
+  recipientId: string;
+  senderId: string | null;
+  senderName?: string;
+  type: NotificationType;
+  title: string;
+  message: string | null;
+  relatedType: string | null;
+  relatedId: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
 
 // Employee Types
 export interface Employee {

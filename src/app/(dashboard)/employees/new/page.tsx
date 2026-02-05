@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { PageWrapper } from '@/components/layout';
 import { EmployeeForm } from '@/components/employees';
 import { supabase } from '@/lib/supabase';
+import { createUserAction } from '@/app/(dashboard)/settings/users/actions';
 import { toast } from 'sonner';
 
 export default function NewEmployeePage() {
@@ -32,17 +33,43 @@ export default function NewEmployeePage() {
         start_date: data.startDate,
         end_date: data.endDate || null,
         active: data.active ?? true,
-        emergency_contact: data.emergencyContact || null,
+        emergency_contact: data.emergencyContactName
+          ? {
+              name: data.emergencyContactName,
+              phone: data.emergencyContactPhone,
+              relationship: data.emergencyContactRelation,
+            }
+          : null,
         documents: data.documents || null,
       };
 
-      const { error } = await supabase
+      const { data: newEmployee, error } = await supabase
         .from('employees')
-        .insert([dbData]);
+        .insert([dbData])
+        .select('id')
+        .single();
 
       if (error) throw error;
 
-      toast.success('Employee created successfully!');
+      // Create user account if requested
+      if (data.createUserAccount && newEmployee) {
+        try {
+          await createUserAction({
+            email: data.email,
+            password: data.password,
+            fullName: data.fullName,
+            systemRole: data.systemRole || 'member',
+            employeeId: newEmployee.id,
+          });
+          toast.success('Employee and user account created successfully!');
+        } catch (userErr: any) {
+          console.error('User account creation failed:', userErr);
+          toast.warning('Employee created, but user account failed: ' + userErr.message);
+        }
+      } else {
+        toast.success('Employee created successfully!');
+      }
+
       router.push('/employees');
     } catch (err) {
       console.error('Error creating employee:', err);

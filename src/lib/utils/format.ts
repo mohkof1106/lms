@@ -22,7 +22,7 @@ export const formatPhone = (phone: string): string => {
   return phone;
 };
 
-// Role display names
+// Role display names (job roles)
 export const roleLabels: Record<string, string> = {
   admin: 'Admin',
   sr_manager: 'Sr. Manager',
@@ -30,6 +30,14 @@ export const roleLabels: Record<string, string> = {
   designer: 'Designer',
   hr: 'HR',
   pm: 'Project Manager',
+};
+
+// System role display names (access control roles)
+export const systemRoleLabels: Record<string, string> = {
+  admin: 'Admin',
+  manager: 'Manager',
+  member: 'Member',
+  viewer: 'Viewer',
 };
 
 // Status badge variants

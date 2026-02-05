@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
@@ -25,9 +24,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Employee, UserRole } from '@/types';
-import { roleLabels } from '@/lib/utils/format';
-import { User, Briefcase, Calendar, Phone, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { roleLabels, systemRoleLabels } from '@/lib/utils/format';
+import { User, Briefcase, Phone, Lock, Eye, EyeOff, Loader2, UserPlus } from 'lucide-react';
 import { AedIcon } from '@/components/ui/aed-icon';
 
 // Base schema for employee fields
@@ -35,10 +35,6 @@ const createEmployeeSchema = (isEditMode: boolean) => z.object({
   fullName: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number is required'),
-  password: isEditMode
-    ? z.string().min(8, 'Password must be at least 8 characters').optional().or(z.literal(''))
-    : z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().optional().or(z.literal('')),
   role: z.enum(['admin', 'sr_manager', 'manager', 'designer', 'hr', 'pm'] as const),
   jobTitle: z.string().min(2, 'Job title is required'),
   department: z.string().min(2, 'Department is required'),
@@ -53,27 +49,41 @@ const createEmployeeSchema = (isEditMode: boolean) => z.object({
   emergencyContactName: z.string().optional(),
   emergencyContactPhone: z.string().optional(),
   emergencyContactRelation: z.string().optional(),
+  // User account fields
+  createUserAccount: z.boolean(),
+  password: z.string().optional().or(z.literal('')),
+  confirmPassword: z.string().optional().or(z.literal('')),
+  systemRole: z.enum(['admin', 'manager', 'member', 'viewer']).optional(),
 }).refine((data) => {
-  // If password is provided, confirmPassword must match
-  if (data.password && data.password.length > 0) {
+  // If creating user account, password is required
+  if (data.createUserAccount && !isEditMode) {
+    if (!data.password || data.password.length < 8) return false;
+  }
+  return true;
+}, {
+  message: 'Password must be at least 8 characters',
+  path: ['password'],
+}).refine((data) => {
+  if (data.createUserAccount && data.password && data.password.length > 0) {
     return data.password === data.confirmPassword;
   }
   return true;
 }, {
   message: "Passwords don't match",
-  path: ["confirmPassword"],
+  path: ['confirmPassword'],
 });
 
-type EmployeeFormData = z.infer<ReturnType<typeof createEmployeeSchema>>;
+export type EmployeeFormData = z.infer<ReturnType<typeof createEmployeeSchema>>;
 
 interface EmployeeFormProps {
   employee?: Employee;
   onSubmit: (data: EmployeeFormData) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
+  hasLinkedUser?: boolean;
 }
 
-export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: EmployeeFormProps) {
+export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting, hasLinkedUser }: EmployeeFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -87,8 +97,6 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
           fullName: employee.fullName,
           email: employee.email,
           phone: employee.phone,
-          password: '',
-          confirmPassword: '',
           role: employee.role,
           jobTitle: employee.jobTitle,
           department: employee.department,
@@ -103,13 +111,15 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
           emergencyContactName: employee.emergencyContact?.name || '',
           emergencyContactPhone: employee.emergencyContact?.phone || '',
           emergencyContactRelation: employee.emergencyContact?.relationship || '',
+          createUserAccount: false,
+          password: '',
+          confirmPassword: '',
+          systemRole: 'member',
         }
       : {
           fullName: '',
           email: '',
           phone: '+971 ',
-          password: '',
-          confirmPassword: '',
           role: 'designer',
           jobTitle: '',
           department: 'Creative',
@@ -124,9 +134,14 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
           emergencyContactName: '',
           emergencyContactPhone: '',
           emergencyContactRelation: '',
+          createUserAccount: false,
+          password: '',
+          confirmPassword: '',
+          systemRole: 'member',
         },
   });
 
+  const createUserAccount = form.watch('createUserAccount');
   const departments = ['Management', 'Creative', 'Client Services', 'Operations', 'Strategy', 'Administration'];
 
   return (
@@ -196,83 +211,137 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
           </CardContent>
         </Card>
 
-        {/* Account Access */}
+        {/* User Account */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Lock className="h-5 w-5 text-primary" />
-              Account Access
+              <UserPlus className="h-5 w-5 text-primary" />
+              User Account
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{isEditMode ? 'New Password' : 'Password'}</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder={isEditMode ? 'Leave blank to keep current' : 'Min 8 characters'}
-                        {...field}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    {isEditMode ? 'Only fill if changing password' : 'Used for employee login to the system'}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Re-enter password"
-                        {...field}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormDescription>Must match the password above</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <CardContent className="space-y-4">
+            {hasLinkedUser ? (
+              <div className="rounded-md bg-muted/50 p-4">
+                <p className="text-sm text-muted-foreground">
+                  This employee already has a linked user account. Manage it from{' '}
+                  <span className="font-medium text-foreground">Settings &gt; Users</span>.
+                </p>
+              </div>
+            ) : (
+              <>
+                <FormField
+                  control={form.control}
+                  name="createUserAccount"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Create user account</FormLabel>
+                        <FormDescription>
+                          Allow this employee to log in to the system
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {createUserAccount && (
+                  <div className="grid gap-4 md:grid-cols-2 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type={showPassword ? 'text' : 'password'}
+                                placeholder="Min 8 characters"
+                                {...field}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                placeholder="Re-enter password"
+                                {...field}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              >
+                                {showConfirmPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="systemRole"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>System Access Role</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {Object.entries(systemRoleLabels).map(([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>Controls what this user can access in the app</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -327,7 +396,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>System Role</FormLabel>
+                  <FormLabel>Job Role</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -342,7 +411,7 @@ export function EmployeeForm({ employee, onSubmit, onCancel, isSubmitting }: Emp
                       ))}
                     </SelectContent>
                   </Select>
-                  <FormDescription>Determines access permissions in the system</FormDescription>
+                  <FormDescription>Employee job role within the organization</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
