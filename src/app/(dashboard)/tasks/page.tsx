@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { PageWrapper } from '@/components/layout';
 import { DbKanbanBoard } from '@/components/tasks/DbKanbanBoard';
+import { TasksByEmployeeView } from '@/components/tasks/TasksByEmployeeView';
 import { TaskEditDialog } from '@/components/tasks/TaskEditDialog';
 import { SearchInput } from '@/components/shared';
 import { Button } from '@/components/ui/button';
@@ -29,10 +30,11 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import { DbTask, DbTaskPriority, TaskBoardColumn } from '@/types';
-import { Plus, Loader2, Settings, User, Users, Check, X } from 'lucide-react';
+import { Plus, Loader2, Settings, User, Users, Check, X, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -58,6 +60,12 @@ function TasksContent() {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [employees, setEmployees] = useState<{ id: string; full_name: string }[]>([]);
   const [employeePopoverOpen, setEmployeePopoverOpen] = useState(false);
+
+  // View mode
+  const [viewMode, setViewMode] = useState<'board' | 'by-employee'>('board');
+
+  // Starred filter
+  const [starredFilter, setStarredFilter] = useState(false);
 
   // Task edit dialog
   const [selectedTask, setSelectedTask] = useState<DbTask | null>(null);
@@ -141,6 +149,7 @@ function TasksContent() {
         hoursEstimated: Number(task.hours_estimated) || 0,
         hoursActual: Number(task.hours_actual) || 0,
         revisionCount: task.revision_count || 0,
+        isStarred: task.is_starred || false,
         createdAt: task.created_at,
         updatedAt: task.updated_at,
         offerNumber: task.offers?.offer_number,
@@ -227,9 +236,11 @@ function TasksContent() {
           sub.assignees?.some((a) => selectedEmployeeIds.includes(a.employeeId))
         );
 
-      return matchesSearch && matchesPriority && matchesOffer && matchesEmployee;
+      const matchesStarred = !starredFilter || task.isStarred;
+
+      return matchesSearch && matchesPriority && matchesOffer && matchesEmployee && matchesStarred;
     });
-  }, [tasks, search, priorityFilter, offerFilter, selectedEmployeeIds]);
+  }, [tasks, search, priorityFilter, offerFilter, selectedEmployeeIds, starredFilter]);
 
   // Count active tasks (not in Completed column)
   const completedColumn = columns.find((c) => c.name === 'Completed');
@@ -238,6 +249,30 @@ function TasksContent() {
   const handleTaskClick = (task: DbTask) => {
     setSelectedTask(task);
     setEditDialogOpen(true);
+  };
+
+  const handleToggleStar = async (taskId: string, currentStarred: boolean) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('tasks')
+        .update({ is_starred: !currentStarred })
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === taskId ? { ...task, isStarred: !currentStarred } : task
+        )
+      );
+      // Also update selectedTask if it's the same one (for dialog)
+      setSelectedTask((prev) =>
+        prev && prev.id === taskId ? { ...prev, isStarred: !currentStarred } : prev
+      );
+    } catch (err) {
+      console.error('Error toggling star:', err);
+      toast.error('Failed to update star');
+    }
   };
 
   const handleTaskUpdate = () => {
@@ -277,6 +312,16 @@ function TasksContent() {
     >
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <Tabs
+          value={viewMode}
+          onValueChange={(v) => setViewMode(v as 'board' | 'by-employee')}
+        >
+          <TabsList>
+            <TabsTrigger value="board">Board</TabsTrigger>
+            <TabsTrigger value="by-employee">By Employee</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -316,6 +361,17 @@ function TasksContent() {
               Assigned to Me
             </Button>
           )}
+
+          {/* Starred filter */}
+          <Button
+            variant={starredFilter ? 'default' : 'outline'}
+            size="default"
+            onClick={() => setStarredFilter(!starredFilter)}
+            className="gap-2"
+          >
+            <Star className={cn('h-4 w-4', starredFilter && 'fill-current')} />
+            Starred
+          </Button>
 
           {/* Employee multi-select */}
           <Popover open={employeePopoverOpen} onOpenChange={setEmployeePopoverOpen}>
@@ -371,24 +427,33 @@ function TasksContent() {
         </div>
       </div>
 
-      {/* Kanban Board */}
+      {/* Task Views */}
       {filteredTasks.length === 0 && tasks.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">No tasks yet.</p>
           <p className="text-sm text-muted-foreground">
-            Accept an offer and click "Initiate Tasks" to create tasks from deliverables.
+            Accept an offer and click &quot;Initiate Tasks&quot; to create tasks from deliverables.
           </p>
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No tasks found matching your criteria.</p>
         </div>
-      ) : (
+      ) : viewMode === 'board' ? (
         <DbKanbanBoard
           tasks={filteredTasks}
           columns={columns}
           onTaskMove={handleTaskMove}
           onTaskClick={handleTaskClick}
+          onToggleStar={handleToggleStar}
+        />
+      ) : (
+        <TasksByEmployeeView
+          tasks={filteredTasks}
+          columns={columns}
+          onTaskClick={handleTaskClick}
+          onToggleStar={handleToggleStar}
+          onTaskMove={handleTaskMove}
         />
       )}
 
@@ -399,6 +464,7 @@ function TasksContent() {
         onOpenChange={setEditDialogOpen}
         columns={columns}
         onUpdate={handleTaskUpdate}
+        onToggleStar={handleToggleStar}
       />
     </PageWrapper>
   );

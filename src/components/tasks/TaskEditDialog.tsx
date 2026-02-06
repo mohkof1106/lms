@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -39,7 +40,9 @@ import {
   Send,
   X,
   Plus,
+  Star,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TaskEditDialogProps {
   task: DbTask | null;
@@ -47,6 +50,7 @@ interface TaskEditDialogProps {
   onOpenChange: (open: boolean) => void;
   columns: TaskBoardColumn[];
   onUpdate: () => void;
+  onToggleStar?: (taskId: string, currentStarred: boolean) => void;
 }
 
 const priorityOptions: { value: DbTaskPriority; label: string; color: string }[] = [
@@ -68,6 +72,7 @@ export function TaskEditDialog({
   onOpenChange,
   columns,
   onUpdate,
+  onToggleStar,
 }: TaskEditDialogProps) {
   const [saving, setSaving] = useState(false);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
@@ -142,15 +147,10 @@ export function TaskEditDialog({
   async function loadComments(taskId: string) {
     setLoadingComments(true);
     try {
+      // Simple query without FK join — resolve author names from employees state
       const { data, error } = await (supabase as any)
         .from('task_comments')
-        .select(`
-          id,
-          content,
-          created_at,
-          author_id,
-          employees (full_name)
-        `)
+        .select('id, content, created_at, author_id')
         .eq('task_id', taskId)
         .order('created_at', { ascending: true });
 
@@ -161,17 +161,25 @@ export function TaskEditDialog({
           id: c.id,
           taskId,
           authorId: c.author_id,
-          authorName: c.employees?.full_name || 'Unknown',
+          authorName: '', // resolved at render time from employees state
           content: c.content,
           createdAt: c.created_at,
         }))
       );
     } catch (err) {
       console.error('Error loading comments:', err);
+      toast.error('Failed to load comments');
     } finally {
       setLoadingComments(false);
     }
   }
+
+  // Resolve author name from employees list
+  const getAuthorName = (authorId: string | null) => {
+    if (!authorId) return 'Unknown';
+    const emp = employees.find((e) => e.id === authorId);
+    return emp?.fullName || 'Unknown';
+  };
 
   const handleSave = async () => {
     if (!task) return;
@@ -201,6 +209,7 @@ export function TaskEditDialog({
             status: subtask.status,
             completed: isCompleted,
             completed_at: isCompleted ? new Date().toISOString() : null,
+            target_date: subtask.targetDate || null,
           })
           .eq('id', subtask.id);
 
@@ -224,6 +233,14 @@ export function TaskEditDialog({
         s.id === subtaskId
           ? { ...s, status, completed: status === 'completed' }
           : s
+      )
+    );
+  };
+
+  const handleSubtaskDateChange = (subtaskId: string, date: string) => {
+    setSubtasks((prev) =>
+      prev.map((s) =>
+        s.id === subtaskId ? { ...s, targetDate: date || undefined } : s
       )
     );
   };
@@ -405,6 +422,22 @@ export function TaskEditDialog({
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
+            {onToggleStar && (
+              <button
+                type="button"
+                onClick={() => onToggleStar(task.id, task.isStarred)}
+                className="shrink-0"
+              >
+                <Star
+                  className={cn(
+                    'h-5 w-5 transition-colors',
+                    task.isStarred
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-muted-foreground hover:text-yellow-400'
+                  )}
+                />
+              </button>
+            )}
             <span className="truncate">{task.title}</span>
             {task.offerNumber && (
               <Badge variant="outline" className="shrink-0">
@@ -412,6 +445,9 @@ export function TaskEditDialog({
               </Badge>
             )}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Edit task details, subtasks, and comments
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4 space-y-6">
@@ -556,12 +592,12 @@ export function TaskEditDialog({
                           </Badge>
                         </div>
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          {subtask.targetDate && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {formatDate(subtask.targetDate)}
-                            </span>
-                          )}
+                          <Input
+                            type="date"
+                            value={subtask.targetDate || ''}
+                            onChange={(e) => handleSubtaskDateChange(subtask.id, e.target.value)}
+                            className="h-6 w-[130px] text-xs px-1.5"
+                          />
                           {subtask.hoursEstimated > 0 && (
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
@@ -666,24 +702,27 @@ export function TaskEditDialog({
               <p className="text-sm text-muted-foreground">No comments yet</p>
             ) : (
               <div className="space-y-3">
-                {comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3">
-                    <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarFallback className="text-xs">
-                        {comment.authorName.split(' ').map((n) => n[0]).join('')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{comment.authorName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(comment.createdAt)}
-                        </span>
+                {comments.map((comment) => {
+                  const authorName = getAuthorName(comment.authorId);
+                  return (
+                    <div key={comment.id} className="flex gap-3">
+                      <Avatar className="h-8 w-8 shrink-0">
+                        <AvatarFallback className="text-xs">
+                          {authorName.split(' ').map((n) => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">{authorName}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(comment.createdAt)}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                       </div>
-                      <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
