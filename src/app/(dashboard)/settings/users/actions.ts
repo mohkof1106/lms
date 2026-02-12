@@ -3,6 +3,9 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { Database } from '@/lib/supabase/database.types';
+
+type SystemRole = Database['public']['Enums']['system_role'];
 
 // Server Supabase client to verify caller identity
 async function getCallerClient() {
@@ -67,7 +70,7 @@ export async function createUserAction(data: {
       .update({
         employee_id: data.employeeId,
         full_name: data.fullName,
-        system_role: data.systemRole,
+        system_role: data.systemRole as SystemRole,
       })
       .eq('id', newUser.user.id);
 
