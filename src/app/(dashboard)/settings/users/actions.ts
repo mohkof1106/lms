@@ -1,16 +1,8 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
-
-// Service role client for admin operations (server-only)
-function createServiceRoleClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // Server Supabase client to verify caller identity
 async function getCallerClient() {
@@ -34,7 +26,7 @@ async function verifyAdmin() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const adminClient = createServiceRoleClient();
+  const adminClient = createAdminClient();
   const { data: profile } = await adminClient
     .from('user_profiles')
     .select('system_role')
@@ -53,7 +45,7 @@ export async function createUserAction(data: {
   employeeId?: string;
 }) {
   await verifyAdmin();
-  const adminClient = createServiceRoleClient();
+  const adminClient = createAdminClient();
 
   // Create auth user
   const { data: newUser, error } = await adminClient.auth.admin.createUser({
@@ -97,7 +89,7 @@ export async function updateUserAction(
   }
 ) {
   await verifyAdmin();
-  const adminClient = createServiceRoleClient();
+  const adminClient = createAdminClient();
 
   const updateData: Record<string, any> = {};
   if (data.systemRole !== undefined) updateData.system_role = data.systemRole;
@@ -116,7 +108,7 @@ export async function updateUserAction(
 
 export async function deleteUserAction(userId: string) {
   await verifyAdmin();
-  const adminClient = createServiceRoleClient();
+  const adminClient = createAdminClient();
 
   // Delete auth user (cascades to user_profiles)
   const { error } = await adminClient.auth.admin.deleteUser(userId);
@@ -127,7 +119,7 @@ export async function deleteUserAction(userId: string) {
 
 export async function resetPasswordAction(userId: string, newPassword: string) {
   await verifyAdmin();
-  const adminClient = createServiceRoleClient();
+  const adminClient = createAdminClient();
 
   const { error } = await adminClient.auth.admin.updateUserById(userId, {
     password: newPassword,
